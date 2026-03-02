@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — arca.ph</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
+  <script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
+  <style>
+    :root {
+      --brand:       #29ABE2;
+      --brand-hover: #45BDED;
+      --accent:      #FFCA28;
+      --bg:          #06182B;
+      --bg-2:        #0A2240;
+      --bg-3:        #0F2B50;
+      --bg-4:        #163460;
+      --bg-5:        #1C3D70;
+      --bg-6:        #244780;
+      --bg-7:        #2E5490;
+      --bg-8:        #4A72A8;
+      --text-muted:  #7BA8CC;
+      --text:        #E4F2FA;
+      --font-head:   'Montserrat', system-ui, sans-serif;
+      --font:        'Roboto', system-ui, sans-serif;
+    }
+    *, *::before, *::after { box-sizing: border-box; -webkit-font-smoothing: antialiased; }
+    body { margin: 0; background: var(--bg); color: var(--text-muted); font-family: var(--font); font-size: 15px; }
+
+    /* App shell */
+    .app { display: none; }
+    .app.visible { display: flex; flex-direction: column; min-height: 100vh; }
+
+    /* Nav */
+    .dash-nav {
+      position: fixed; top: 0; left: 0; right: 0; height: 60px;
+      background: rgba(6,24,43,0.92); backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--bg-4); z-index: 300;
+      display: flex; align-items: center; padding: 0 24px; gap: 12px;
+    }
+    .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .logo img { width: 30px; height: 30px; object-fit: contain; }
+    .logo-text { font-family: var(--font-head); font-size: 18px; font-weight: 700; color: var(--text); letter-spacing: -0.04em; }
+    .nav-badge {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+      background: rgba(41,171,226,0.15); border: 1px solid rgba(41,171,226,0.3); color: var(--brand);
+      padding: 2px 8px; border-radius: 500px; font-family: var(--font-head);
+    }
+    .nav-spacer { flex: 1; }
+    .nav-logout {
+      font-size: 12px; font-weight: 600; color: var(--bg-8); background: none; border: none;
+      cursor: pointer; font-family: var(--font-head); letter-spacing: 0.04em;
+      transition: color 0.15s;
+    }
+    .nav-logout:hover { color: var(--text-muted); }
+
+    /* Body */
+    .body { display: flex; padding-top: 60px; min-height: 100vh; }
+
+    /* Sidebar */
+    .sidebar {
+      width: 220px; flex-shrink: 0; position: fixed; top: 60px; left: 0; bottom: 0;
+      background: var(--bg-2); border-right: 1px solid var(--bg-4);
+      overflow-y: auto; padding: 16px 10px; z-index: 200;
+    }
+    .sb-group { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--bg-8); font-family: var(--font-head); padding: 0 10px; margin: 18px 0 6px; }
+    .sb-group:first-child { margin-top: 0; }
+    .sb-link {
+      display: flex; align-items: center; gap: 9px; padding: 8px 10px; border-radius: 8px;
+      color: var(--text-muted); font-size: 13px; font-weight: 500; cursor: pointer;
+      transition: background 0.15s, color 0.15s; border: none; background: none; width: 100%; text-align: left;
+    }
+    .sb-link:hover { background: rgba(41,171,226,0.08); color: var(--text); }
+    .sb-link.active { background: rgba(41,171,226,0.12); color: var(--brand); font-weight: 600; }
+    .sb-link svg { flex-shrink: 0; opacity: 0.65; }
+    .sb-link.active svg { opacity: 1; }
+
+    /* Main */
+    .main { margin-left: 220px; flex: 1; padding: 28px 28px 48px; }
+    .section { display: none; }
+    .section.active { display: block; }
+
+    /* Page header */
+    .ph { margin-bottom: 24px; }
+    .ph-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+    .ph h1 { font-family: var(--font-head); font-size: 20px; font-weight: 700; color: var(--text); letter-spacing: -0.03em; margin: 0 0 3px; }
+    .ph p { font-size: 13px; color: var(--text-muted); margin: 0; }
+
+    /* Stats grid */
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
+    .stat {
+      background: var(--bg-2); border: 1px solid var(--bg-4); border-radius: 14px; padding: 18px 20px;
+    }
+    .stat-icon { width: 34px; height: 34px; border-radius: 9px; display: flex; align-items: center; justify-content: center; margin-bottom: 12px; }
+    .stat-label { font-size: 10px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--bg-8); font-family: var(--font-head); margin-bottom: 6px; }
+    .stat-value { font-family: var(--font-head); font-size: 30px; font-weight: 800; color: var(--text); letter-spacing: -0.04em; line-height: 1; }
+
+    /* Card */
+    .card { background: var(--bg-2); border: 1px solid var(--bg-4); border-radius: 14px; overflow: hidden; margin-bottom: 16px; }
+    .card-head { display: flex; align-items: center; justify-content: space-between; padding: 16px 18px; border-bottom: 1px solid var(--bg-4); }
+    .card-head h2 { font-family: var(--font-head); font-size: 13px; font-weight: 700; color: var(--text); letter-spacing: -0.02em; margin: 0; }
+
+    /* Table */
+    .tbl-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    thead th { font-size: 10px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--bg-8); font-family: var(--font-head); padding: 11px 14px; text-align: left; border-bottom: 1px solid var(--bg-4); background: var(--bg-3); white-space: nowrap; }
+    tbody tr { border-bottom: 1px solid var(--bg-4); transition: background 0.1s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: rgba(41,171,226,0.03); }
+    tbody td { padding: 12px 14px; font-size: 13px; color: var(--text-muted); vertical-align: middle; }
+    .tc-name { font-weight: 600; color: var(--text); }
+    .tc-email { font-family: monospace; font-size: 12px; }
+    .tc-msg { max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tc-actions { white-space: nowrap; }
+    .tc-actions { display: flex; gap: 5px; flex-wrap: wrap; }
+    .empty-row { padding: 40px 20px; text-align: center; color: var(--bg-8); font-size: 13px; }
+
+    /* Badges */
+    .badge { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; padding: 2px 8px; border-radius: 500px; font-family: var(--font-head); }
+    .badge-dot { width: 4px; height: 4px; border-radius: 50%; flex-shrink: 0; }
+    .badge-active { background: rgba(34,197,94,0.12); color: #4ade80; border: 1px solid rgba(34,197,94,0.25); }
+    .badge-active .badge-dot { background: #4ade80; }
+    .badge-unsub { background: rgba(239,68,68,0.12); color: #f87171; border: 1px solid rgba(239,68,68,0.25); }
+    .badge-unsub .badge-dot { background: #f87171; }
+    .badge-cadence { background: rgba(41,171,226,0.1); color: var(--brand); border: 1px solid rgba(41,171,226,0.2); }
+    .badge-cadence .badge-dot { background: var(--brand); }
+
+    /* Buttons */
+    .btn { display: inline-flex; align-items: center; gap: 4px; font-family: var(--font-head); font-size: 10px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; padding: 5px 10px; border-radius: 6px; border: 1px solid transparent; cursor: pointer; transition: background 0.15s, border-color 0.15s, transform 0.1s; }
+    .btn:active { transform: scale(0.97); }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-blue { background: rgba(41,171,226,0.1); border-color: rgba(41,171,226,0.2); color: var(--brand); }
+    .btn-blue:hover { background: rgba(41,171,226,0.18); border-color: rgba(41,171,226,0.35); }
+    .btn-red { background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.2); color: #f87171; }
+    .btn-red:hover { background: rgba(239,68,68,0.18); border-color: rgba(239,68,68,0.35); }
+    .btn-solid { background: var(--brand); color: #fff; border-color: var(--brand); font-size: 12px; padding: 7px 16px; border-radius: 8px; }
+    .btn-solid:hover { background: var(--brand-hover); border-color: var(--brand-hover); }
+
+    /* Search */
+    .search-wrap { position: relative; }
+    .search-wrap input { background: var(--bg-3); border: 1.5px solid var(--bg-5); border-radius: 8px; padding: 7px 12px 7px 32px; color: var(--text); font-family: var(--font); font-size: 13px; outline: none; width: 200px; transition: border-color 0.2s; }
+    .search-wrap input:focus { border-color: var(--brand); }
+    .search-wrap svg { position: absolute; left: 9px; top: 50%; transform: translateY(-50%); pointer-events: none; }
+
+    /* Form fields */
+    .field { margin-bottom: 16px; }
+    .field label { display: block; font-size: 10px; font-weight: 700; color: var(--text-muted); letter-spacing: 0.07em; text-transform: uppercase; margin-bottom: 6px; font-family: var(--font-head); }
+    .field input, .field select, .field textarea { width: 100%; background: var(--bg-3); border: 1.5px solid var(--bg-5); border-radius: 8px; padding: 10px 12px; color: var(--text); font-family: var(--font); font-size: 14px; outline: none; transition: border-color 0.2s, box-shadow 0.2s; box-sizing: border-box; }
+    .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(41,171,226,0.12); }
+    .field select { cursor: pointer; }
+    .field textarea { resize: vertical; min-height: 80px; }
+
+    /* Editor layout */
+    .editor-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .editor-grid .full { grid-column: 1 / -1; }
+
+    /* Quill theme overrides */
+    .ql-toolbar { background: var(--bg-3) !important; border-color: var(--bg-5) !important; border-radius: 8px 8px 0 0 !important; }
+    .ql-container { background: var(--bg-3) !important; border-color: var(--bg-5) !important; border-radius: 0 0 8px 8px !important; font-family: var(--font) !important; font-size: 15px !important; }
+    .ql-editor { color: var(--text) !important; min-height: 220px; }
+    .ql-editor.ql-blank::before { color: var(--bg-8) !important; }
+    .ql-toolbar .ql-stroke { stroke: var(--text-muted) !important; }
+    .ql-toolbar .ql-fill { fill: var(--text-muted) !important; }
+    .ql-toolbar button:hover .ql-stroke { stroke: var(--brand) !important; }
+    .ql-toolbar button:hover .ql-fill { fill: var(--brand) !important; }
+    .ql-toolbar .ql-picker-label { color: var(--text-muted) !important; }
+    .ql-toolbar .ql-picker-options { background: var(--bg-3) !important; border-color: var(--bg-5) !important; }
+    .ql-toolbar .ql-picker-item { color: var(--text-muted) !important; }
+
+    /* Modal */
+    .modal-bg { display: none; position: fixed; inset: 0; background: rgba(6,24,43,0.75); backdrop-filter: blur(4px); z-index: 500; align-items: center; justify-content: center; }
+    .modal-bg.open { display: flex; }
+    .modal { background: var(--bg-2); border: 1px solid var(--bg-4); border-radius: 16px; padding: 26px; width: 100%; max-width: 460px; box-shadow: 0 32px 80px rgba(0,0,0,0.5); animation: mUp 0.22s cubic-bezier(0.22,1,0.36,1) both; }
+    @keyframes mUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+    .modal h2 { font-family: var(--font-head); font-size: 16px; font-weight: 700; color: var(--text); letter-spacing: -0.03em; margin: 0 0 18px; }
+    .modal-foot { display: flex; gap: 8px; justify-content: flex-end; margin-top: 18px; }
+    .btn-ghost { background: transparent; border: 1px solid var(--bg-5); color: var(--text-muted); font-family: var(--font-head); font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; padding: 7px 14px; border-radius: 8px; cursor: pointer; transition: border-color 0.15s, color 0.15s; }
+    .btn-ghost:hover { border-color: var(--bg-7); color: var(--text); }
+
+    /* Password gate */
+    .gate { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+    .gate-card { background: var(--bg-2); border: 1px solid var(--bg-4); border-radius: 20px; padding: 44px 40px; width: 100%; max-width: 360px; box-shadow: 0 32px 80px rgba(0,0,0,0.5); text-align: center; }
+    .gate-logo { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 28px; }
+    .gate-logo img { width: 38px; height: 38px; }
+    .gate-logo span { font-family: var(--font-head); font-size: 22px; font-weight: 800; color: var(--text); letter-spacing: -0.04em; }
+    .gate h1 { font-family: var(--font-head); font-size: 17px; font-weight: 700; color: var(--text); letter-spacing: -0.03em; margin: 0 0 6px; }
+    .gate p { font-size: 13px; color: var(--text-muted); margin: 0 0 22px; }
+    .gate-input { width: 100%; background: var(--bg-3); border: 1.5px solid var(--bg-5); border-radius: 10px; padding: 12px 16px; color: var(--text); font-family: var(--font); font-size: 15px; outline: none; transition: border-color 0.2s, box-shadow 0.2s; box-sizing: border-box; text-align: center; letter-spacing: 0.1em; margin-bottom: 12px; }
+    .gate-input:focus { border-color: var(--brand); box-shadow: 0 0 0 3px rgba(41,171,226,0.13); }
+    .gate-btn { width: 100%; background: var(--brand); color: #fff; font-family: var(--font-head); font-size: 14px; font-weight: 700; letter-spacing: 0.02em; text-transform: uppercase; padding: 13px; border-radius: 10px; border: none; cursor: pointer; transition: background 0.2s, transform 0.15s; }
+    .gate-btn:hover { background: var(--brand-hover); transform: translateY(-1px); }
+    .gate-btn:active { transform: translateY(0); }
+    .gate-err { font-size: 13px; color: #f87171; margin-top: 10px; display: none; }
+
+    /* Toast */
+    .toast { position: fixed; bottom: 24px; right: 24px; background: var(--bg-2); border: 1px solid var(--bg-4); color: var(--text); font-size: 13px; font-weight: 500; padding: 11px 16px; border-radius: 10px; box-shadow: 0 8px 32px rgba(0,0,0,0.4); z-index: 999; display: none; align-items: center; gap: 7px; }
+    .toast.show { display: flex; animation: mUp 0.2s cubic-bezier(0.22,1,0.36,1); }
+
+    /* Responsive */
+    @media (max-width: 900px) { .stats { grid-template-columns: repeat(2,1fr); } }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════ PASSWORD GATE ═══════════ -->
+<div class="gate" id="gate">
+  <div class="gate-card">
+    <div class="gate-logo">
+      <img src="Arca.png" alt="Arca">
+      <span>arca.ph</span>
+    </div>
+    <h1>Admin Dashboard</h1>
+    <p>Enter your password to continue</p>
+    <input type="password" class="gate-input" id="gate-input" placeholder="••••••••" autocomplete="current-password">
+    <button class="gate-btn" onclick="checkPassword()">Access Dashboard →</button>
+    <p class="gate-err" id="gate-err">Incorrect password.</p>
+  </div>
+</div>
+
+<!-- ═══════════ APP ═══════════ -->
+<div class="app" id="app">
+
+  <!-- Nav -->
+  <nav class="dash-nav">
+    <a href="index.html" class="logo">
+      <img src="Arca.png" alt="Arca">
+      <span class="logo-text">arca.ph</span>
+    </a>
+    <span class="nav-badge">Admin</span>
+    <div class="nav-spacer"></div>
+    <button class="nav-logout" onclick="logout()">Log out</button>
+  </nav>
+
+  <div class="body">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sb-group">Dashboard</div>
+      <button class="sb-link active" onclick="go('overview',this)">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="7" height="7" rx="1.5" fill="currentColor"/><rect x="14" y="3" width="7" height="7" rx="1.5" fill="currentColor" opacity=".5"/><rect x="3" y="14" width="7" height="7" rx="1.5" fill="currentColor" opacity=".5"/><rect x="14" y="14" width="7" height="7" rx="1.5" fill="currentColor" opacity=".5"/></svg>
+        Overview
+      </button>
+
+      <div class="sb-group">People</div>
+      <button class="sb-link" onclick="go('submissions',this)">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Form Submissions
+      </button>
+      <button class="sb-link" onclick="go('subscribers',this)">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2"/><path d="M1 20c0-4 3.6-7 8-7h6c4.4 0 8 3 8 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        Subscribers
+      </button>
+      <button class="sb-link" onclick="go('emaillog',this)">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><rect x="2" y="4" width="20" height="16" rx="2" stroke="currentColor" stroke-width="2"/><polyline points="22,6 12,13 2,6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        Email Log
+      </button>
+
+      <div class="sb-group">Newsletters</div>
+      <button class="sb-link" onclick="go('editor',this)">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        New Newsletter
+      </button>
+      <button class="sb-link" onclick="go('saved',this)">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><polyline points="14 2 14 8 20 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Saved Newsletters
+      </button>
+    </aside>
+
+    <!-- Main -->
+    <main class="main">
+
+      <!-- ── OVERVIEW ── -->
+      <div class="section active" id="sec-overview">
+        <div class="ph">
+          <h1>Overview</h1>
+          <p>All activity across Arca at a glance.</p>
+        </div>
+        <div class="stats">
+          <div class="stat">
+            <div class="stat-icon" style="background:rgba(41,171,226,0.12);">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="#29ABE2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div class="stat-label">Form Fills</div>
+            <div class="stat-value" id="s-fills">—</div>
+          </div>
+          <div class="stat">
+            <div class="stat-icon" style="background:rgba(34,197,94,0.12);">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><circle cx="9" cy="7" r="4" stroke="#4ade80" stroke-width="2"/><path d="M1 20c0-4 3.6-7 8-7h6c4.4 0 8 3 8 7" stroke="#4ade80" stroke-width="2" stroke-linecap="round"/></svg>
+            </div>
+            <div class="stat-label">Active Subscribers</div>
+            <div class="stat-value" id="s-subs">—</div>
+          </div>
+          <div class="stat">
+            <div class="stat-icon" style="background:rgba(255,202,40,0.12);">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><rect x="2" y="4" width="20" height="16" rx="2" stroke="#FFCA28" stroke-width="2"/><polyline points="22,6 12,13 2,6" stroke="#FFCA28" stroke-width="2" stroke-linecap="round"/></svg>
+            </div>
+            <div class="stat-label">Emails Sent</div>
+            <div class="stat-value" id="s-emails">—</div>
+          </div>
+          <div class="stat">
+            <div class="stat-icon" style="background:rgba(239,68,68,0.12);">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#f87171" stroke-width="2"/><line x1="15" y1="9" x2="9" y2="15" stroke="#f87171" stroke-width="2" stroke-linecap="round"/><line x1="9" y1="9" x2="15" y2="15" stroke="#f87171" stroke-width="2" stroke-linecap="round"/></svg>
+            </div>
+            <div class="stat-label">Unsubscribes</div>
+            <div class="stat-value" id="s-unsubs">—</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head">
+            <h2>Recent Form Submissions</h2>
+            <button class="btn btn-blue" onclick="go('submissions', document.querySelectorAll('.sb-link')[1])">View all</button>
+          </div>
+          <div class="tbl-wrap">
+            <table><thead><tr><th>Name</th><th>Email</th><th>Date</th></tr></thead>
+            <tbody id="ov-recent"></tbody></table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── FORM SUBMISSIONS ── -->
+      <div class="section" id="sec-submissions">
+        <div class="ph">
+          <div class="ph-row">
+            <div><h1>Form Submissions</h1><p>Everyone who filled out the contact form.</p></div>
+            <div class="search-wrap">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="8" stroke="#4A72A8" stroke-width="2"/><path d="m21 21-4.35-4.35" stroke="#4A72A8" stroke-width="2" stroke-linecap="round"/></svg>
+              <input type="text" placeholder="Search name or email…" oninput="filterSubs(this.value)">
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="tbl-wrap">
+            <table><thead><tr><th>Name</th><th>Email</th><th>Message</th><th>Date</th><th>Actions</th></tr></thead>
+            <tbody id="sub-tbody"></tbody></table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── SUBSCRIBERS ── -->
+      <div class="section" id="sec-subscribers">
+        <div class="ph">
+          <div class="ph-row">
+            <div><h1>Newsletter Subscribers</h1><p>People who opted in to receive newsletters.</p></div>
+            <button class="btn btn-solid" onclick="openSubModal()">+ Add Subscriber</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="tbl-wrap">
+            <table><thead><tr><th>Name</th><th>Email</th><th>Source</th><th>Status</th><th>Subscribed</th><th>Actions</th></tr></thead>
+            <tbody id="nl-sub-tbody"></tbody></table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── EMAIL LOG ── -->
+      <div class="section" id="sec-emaillog">
+        <div class="ph">
+          <div class="ph-row">
+            <div><h1>Email Log</h1><p>Record of every email manually sent to a contact.</p></div>
+            <button class="btn btn-solid" onclick="openLogModal()">+ Log Email</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="tbl-wrap">
+            <table><thead><tr><th>Recipient</th><th>Campaign</th><th>Notes</th><th>Sent</th></tr></thead>
+            <tbody id="log-tbody"></tbody></table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── NEWSLETTER EDITOR ── -->
+      <div class="section" id="sec-editor">
+        <div class="ph"><h1>Newsletter Editor</h1><p>Compose a newsletter and save it as a draft.</p></div>
+        <div class="card" style="padding:22px;">
+          <input type="hidden" id="nl-edit-id">
+          <div class="editor-grid">
+            <div class="field"><label>Title</label><input type="text" id="nl-title" placeholder="e.g. March Community Update"></div>
+            <div class="field"><label>Subject Line</label><input type="text" id="nl-subject" placeholder="e.g. What's new at Arca this month"></div>
+            <div class="field">
+              <label>Cadence</label>
+              <select id="nl-cadence">
+                <option value="">— select —</option>
+                <option value="one-off">One-off</option>
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
+              </select>
+            </div>
+            <div class="field"><label>Scheduled Date</label><input type="date" id="nl-date"></div>
+            <div class="field full"><label>Body</label><div id="quill-editor"></div></div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-top:16px;">
+            <span id="nl-saved-msg" style="font-size:12px;color:#4ade80;display:none;">✓ Saved!</span>
+            <button class="btn-ghost" onclick="clearEditor()">Clear</button>
+            <button class="btn btn-solid" style="font-size:12px;padding:8px 18px;" id="nl-save-btn" onclick="saveNewsletter()">Save Draft</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── SAVED NEWSLETTERS ── -->
+      <div class="section" id="sec-saved">
+        <div class="ph"><h1>Saved Newsletters</h1><p>All drafted and scheduled newsletters.</p></div>
+        <div class="card">
+          <div class="tbl-wrap">
+            <table><thead><tr><th>Title</th><th>Subject</th><th>Cadence</th><th>Scheduled</th><th>Created</th><th>Actions</th></tr></thead>
+            <tbody id="saved-tbody"></tbody></table>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- ═══════════ MODALS ═══════════ -->
+<!-- Log Email -->
+<div class="modal-bg" id="m-log">
+  <div class="modal">
+    <h2>Log Email Sent</h2>
+    <div class="field"><label>Recipient Email</label><input type="email" id="m-email" placeholder="juan@example.com"></div>
+    <div class="field"><label>Recipient Name</label><input type="text" id="m-name" placeholder="Juan dela Cruz"></div>
+    <div class="field"><label>Campaign / Newsletter Title</label><input type="text" id="m-campaign" placeholder="e.g. March Update"></div>
+    <div class="field"><label>Notes (optional)</label><textarea id="m-notes" placeholder="Any context…"></textarea></div>
+    <div class="modal-foot">
+      <button class="btn-ghost" onclick="closeM('m-log')">Cancel</button>
+      <button class="btn btn-solid" onclick="saveLog()">Save Log</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Subscriber -->
+<div class="modal-bg" id="m-sub">
+  <div class="modal">
+    <h2>Add Subscriber</h2>
+    <div class="field"><label>Email</label><input type="email" id="m-sub-email" placeholder="juan@example.com"></div>
+    <div class="field"><label>Name</label><input type="text" id="m-sub-name" placeholder="Juan dela Cruz"></div>
+    <div class="field">
+      <label>Source</label>
+      <select id="m-sub-source">
+        <option value="manual">Manual</option>
+        <option value="form_reply">Form / Email Reply</option>
+      </select>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-ghost" onclick="closeM('m-sub')">Cancel</button>
+      <button class="btn btn-solid" onclick="saveSub()">Add Subscriber</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- ═══════════ SCRIPT ═══════════ -->
+<script>
+// ── Config ──────────────────────────────────────────
+const PASS   = 'arca2025'
+const SB_URL = 'https://fmchvroeyuwzuzhtlgwk.supabase.co'
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZtY2h2cm9leXV3enV6aHRsZ3drIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0NDI2MTIsImV4cCI6MjA4ODAxODYxMn0.5JsS_vRxRBvTcuFNXpNn8xP5RwoLkbCXPQvSBp2-Ies'
+const H = { 'Content-Type': 'application/json', 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY }
+
+// ── Supabase ─────────────────────────────────────────
+async function GET(table, q) {
+  const qs = q ? '?' + new URLSearchParams(q) : ''
+  const r = await fetch(SB_URL + '/rest/v1/' + table + qs, { headers: H })
+  if (!r.ok) { const e = await r.json(); throw e }
+  return r.json()
+}
+async function POST(table, body) {
+  const r = await fetch(SB_URL + '/rest/v1/' + table, { method:'POST', headers:{...H,'Prefer':'return=representation'}, body: JSON.stringify(body) })
+  if (!r.ok) { const e = await r.json(); throw e }
+  return r.json()
+}
+async function PATCH(table, match, body) {
+  const qs = '?' + new URLSearchParams(match)
+  const r = await fetch(SB_URL + '/rest/v1/' + table + qs, { method:'PATCH', headers:{...H,'Prefer':'return=minimal'}, body: JSON.stringify(body) })
+  if (!r.ok) { const e = await r.json(); throw e }
+}
+async function DELETE(table, match) {
+  const qs = '?' + new URLSearchParams(match)
+  const r = await fetch(SB_URL + '/rest/v1/' + table + qs, { method:'DELETE', headers: H })
+  if (!r.ok) { const e = await r.json(); throw e }
+}
+
+// ── Auth ─────────────────────────────────────────────
+function checkPassword() {
+  const v = document.getElementById('gate-input').value
+  if (v === PASS) {
+    sessionStorage.setItem('arca_auth', PASS)
+    document.getElementById('gate').style.display = 'none'
+    document.getElementById('app').classList.add('visible')
+    init()
+  } else {
+    document.getElementById('gate-err').style.display = 'block'
+    document.getElementById('gate-input').focus()
+  }
+}
+function logout() {
+  sessionStorage.removeItem('arca_auth')
+  location.reload()
+}
+document.getElementById('gate-input').addEventListener('keydown', e => { if (e.key === 'Enter') checkPassword() })
+if (sessionStorage.getItem('arca_auth') === PASS) {
+  document.getElementById('gate').style.display = 'none'
+  document.getElementById('app').classList.add('visible')
+  window.addEventListener('DOMContentLoaded', init)
+}
+
+// ── Init ─────────────────────────────────────────────
+var quill
+var allFills = []
+
+async function init() {
+  quill = new Quill('#quill-editor', {
+    theme: 'snow',
+    placeholder: 'Write your newsletter here…',
+    modules: { toolbar: [[{header:[2,3,false]}],['bold','italic','underline'],[{list:'ordered'},{list:'bullet'}],['link','blockquote'],['clean']] }
+  })
+  await reload()
+}
+
+async function reload() {
+  await Promise.allSettled([loadFills(), loadNLSubs(), loadLog(), loadSaved(), loadStats()])
+}
+
+// ── Nav ───────────────────────────────────────────────
+function go(id, btn) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'))
+  document.querySelectorAll('.sb-link').forEach(b => b.classList.remove('active'))
+  document.getElementById('sec-' + id).classList.add('active')
+  if (btn) btn.classList.add('active')
+}
+
+// ── Stats ─────────────────────────────────────────────
+async function loadStats() {
+  try {
+    const [fills, subs, emails, unsubs] = await Promise.all([
+      GET('contact_messages', { select: 'id' }),
+      GET('newsletter_subscribers', { select: 'id', status: 'eq.active' }),
+      GET('email_log', { select: 'id' }),
+      GET('newsletter_subscribers', { select: 'id', status: 'eq.unsubscribed' }),
+    ])
+    document.getElementById('s-fills').textContent  = fills.length
+    document.getElementById('s-subs').textContent   = subs.length
+    document.getElementById('s-emails').textContent = emails.length
+    document.getElementById('s-unsubs').textContent = unsubs.length
+  } catch(e) { console.warn('Stats:', e) }
+}
+
+// ── Form Fills ────────────────────────────────────────
+async function loadFills() {
+  try {
+    allFills = await GET('contact_messages', { select: '*', order: 'created_at.desc' })
+    renderFills(allFills)
+    renderRecent(allFills.slice(0,5))
+  } catch(e) {
+    document.getElementById('sub-tbody').innerHTML = `<tr><td colspan="5" class="empty-row">Could not load — run the SQL to add RLS read policy on contact_messages.</td></tr>`
+  }
+}
+function renderFills(data) {
+  const tb = document.getElementById('sub-tbody')
+  if (!data.length) { tb.innerHTML = `<tr><td colspan="5" class="empty-row">No submissions yet.</td></tr>`; return }
+  tb.innerHTML = data.map(r => `<tr>
+    <td class="tc-name">${x(r.name)}</td>
+    <td class="tc-email">${x(r.email)}</td>
+    <td class="tc-msg">${x(r.message)}</td>
+    <td>${fd(r.created_at)}</td>
+    <td class="tc-actions">
+      <button class="btn btn-blue" onclick="quickSub('${x(r.email)}','${x(r.name)}')">+ Subscribe</button>
+      <button class="btn btn-blue" onclick="quickLog('${x(r.email)}','${x(r.name)}')">Log Email</button>
+    </td>
+  </tr>`).join('')
+}
+function renderRecent(data) {
+  document.getElementById('ov-recent').innerHTML = data.length
+    ? data.map(r => `<tr><td class="tc-name">${x(r.name)}</td><td class="tc-email">${x(r.email)}</td><td>${fd(r.created_at)}</td></tr>`).join('')
+    : `<tr><td colspan="3" class="empty-row">No submissions yet.</td></tr>`
+}
+function filterSubs(q) {
+  const f = allFills.filter(r => r.name.toLowerCase().includes(q.toLowerCase()) || r.email.toLowerCase().includes(q.toLowerCase()))
+  renderFills(f)
+}
+
+// ── Subscribers ───────────────────────────────────────
+async function loadNLSubs() {
+  try {
+    const data = await GET('newsletter_subscribers', { select: '*', order: 'subscribed_at.desc' })
+    renderNLSubs(data)
+  } catch(e) {
+    document.getElementById('nl-sub-tbody').innerHTML = `<tr><td colspan="6" class="empty-row">Could not load — check Supabase tables.</td></tr>`
+  }
+}
+function renderNLSubs(data) {
+  const tb = document.getElementById('nl-sub-tbody')
+  if (!data.length) { tb.innerHTML = `<tr><td colspan="6" class="empty-row">No subscribers yet.</td></tr>`; return }
+  tb.innerHTML = data.map(r => `<tr>
+    <td class="tc-name">${x(r.name||'—')}</td>
+    <td class="tc-email">${x(r.email)}</td>
+    <td>${x(r.source||'manual')}</td>
+    <td><span class="badge ${r.status==='active'?'badge-active':'badge-unsub'}"><span class="badge-dot"></span>${r.status}</span></td>
+    <td>${fd(r.subscribed_at)}</td>
+    <td>${r.status==='active'
+      ? `<button class="btn btn-red" onclick="unsub(${r.id},this)">Unsubscribe</button>`
+      : `<span style="color:var(--bg-8);font-size:11px;">${r.unsubscribed_at?fd(r.unsubscribed_at):'—'}</span>`
+    }</td>
+  </tr>`).join('')
+}
+async function unsub(id, btn) {
+  btn.disabled = true
+  try {
+    await PATCH('newsletter_subscribers', { id: 'eq.'+id }, { status:'unsubscribed', unsubscribed_at: new Date().toISOString() })
+    toast('Unsubscribed.')
+    await Promise.all([loadNLSubs(), loadStats()])
+  } catch(e) { toast(err(e), 1); btn.disabled=false }
+}
+function openSubModal(email, name) {
+  document.getElementById('m-sub-email').value = email||''
+  document.getElementById('m-sub-name').value  = name||''
+  document.getElementById('m-sub-source').value = email ? 'form_reply' : 'manual'
+  document.getElementById('m-sub').classList.add('open')
+}
+function quickSub(e,n) { openSubModal(e,n); go('subscribers', document.querySelectorAll('.sb-link')[2]) }
+async function saveSub() {
+  const email  = document.getElementById('m-sub-email').value.trim()
+  const name   = document.getElementById('m-sub-name').value.trim()
+  const source = document.getElementById('m-sub-source').value
+  if (!email) { alert('Email required.'); return }
+  try {
+    await POST('newsletter_subscribers', { email, name, source, status:'active' })
+    closeM('m-sub')
+    toast('Subscriber added!')
+    await Promise.all([loadNLSubs(), loadStats()])
+  } catch(e) { toast(err(e), 1) }
+}
+
+// ── Email Log ─────────────────────────────────────────
+async function loadLog() {
+  try {
+    const data = await GET('email_log', { select:'*', order:'sent_at.desc' })
+    renderLog(data)
+  } catch(e) {
+    document.getElementById('log-tbody').innerHTML = `<tr><td colspan="4" class="empty-row">Could not load — check Supabase tables.</td></tr>`
+  }
+}
+function renderLog(data) {
+  const tb = document.getElementById('log-tbody')
+  if (!data.length) { tb.innerHTML = `<tr><td colspan="4" class="empty-row">No emails logged yet.</td></tr>`; return }
+  tb.innerHTML = data.map(r => `<tr>
+    <td><div class="tc-name">${x(r.recipient_name||'—')}</div><div class="tc-email" style="font-size:11px;margin-top:2px;">${x(r.recipient_email)}</div></td>
+    <td>${x(r.campaign_title||'—')}</td>
+    <td class="tc-msg">${x(r.notes||'—')}</td>
+    <td>${fd(r.sent_at)}</td>
+  </tr>`).join('')
+}
+function openLogModal(email, name) {
+  document.getElementById('m-email').value    = email||''
+  document.getElementById('m-name').value     = name||''
+  document.getElementById('m-campaign').value = ''
+  document.getElementById('m-notes').value    = ''
+  document.getElementById('m-log').classList.add('open')
+}
+function quickLog(e,n) { openLogModal(e,n); go('emaillog', document.querySelectorAll('.sb-link')[3]) }
+async function saveLog() {
+  const email    = document.getElementById('m-email').value.trim()
+  const name     = document.getElementById('m-name').value.trim()
+  const campaign = document.getElementById('m-campaign').value.trim()
+  const notes    = document.getElementById('m-notes').value.trim()
+  if (!email) { alert('Recipient email required.'); return }
+  try {
+    await POST('email_log', { recipient_email:email, recipient_name:name, campaign_title:campaign, notes })
+    closeM('m-log')
+    toast('Email logged!')
+    await Promise.all([loadLog(), loadStats()])
+  } catch(e) { toast(err(e), 1) }
+}
+
+// ── Newsletter editor ─────────────────────────────────
+async function saveNewsletter() {
+  const title      = document.getElementById('nl-title').value.trim()
+  const subject    = document.getElementById('nl-subject').value.trim()
+  const cadence    = document.getElementById('nl-cadence').value
+  const dateVal    = document.getElementById('nl-date').value
+  const body_html  = quill.root.innerHTML
+  const editId     = document.getElementById('nl-edit-id').value
+  if (!title) { alert('Title is required.'); return }
+  const btn = document.getElementById('nl-save-btn')
+  btn.disabled = true
+  try {
+    const payload = { title, subject, cadence, body_html, scheduled_at: dateVal ? new Date(dateVal).toISOString() : null }
+    if (editId) {
+      await PATCH('newsletters', { id:'eq.'+editId }, payload)
+    } else {
+      await POST('newsletters', payload)
+    }
+    const msg = document.getElementById('nl-saved-msg')
+    msg.style.display = 'inline'
+    setTimeout(() => msg.style.display = 'none', 3000)
+    toast('Draft saved!')
+    document.getElementById('nl-edit-id').value = ''
+    await loadSaved()
+  } catch(e) { toast(err(e), 1) }
+  btn.disabled = false
+}
+function clearEditor() {
+  document.getElementById('nl-title').value   = ''
+  document.getElementById('nl-subject').value = ''
+  document.getElementById('nl-cadence').value = ''
+  document.getElementById('nl-date').value    = ''
+  document.getElementById('nl-edit-id').value = ''
+  if (quill) quill.setContents([])
+}
+
+// ── Saved newsletters ─────────────────────────────────
+async function loadSaved() {
+  try {
+    const data = await GET('newsletters', { select:'*', order:'created_at.desc' })
+    renderSaved(data)
+  } catch(e) {
+    document.getElementById('saved-tbody').innerHTML = `<tr><td colspan="6" class="empty-row">Could not load — check Supabase tables.</td></tr>`
+  }
+}
+function renderSaved(data) {
+  const tb = document.getElementById('saved-tbody')
+  if (!data.length) { tb.innerHTML = `<tr><td colspan="6" class="empty-row">No newsletters saved yet.</td></tr>`; return }
+  tb.innerHTML = data.map(r => `<tr>
+    <td class="tc-name">${x(r.title)}</td>
+    <td class="tc-msg">${x(r.subject||'—')}</td>
+    <td>${r.cadence?`<span class="badge badge-cadence"><span class="badge-dot"></span>${x(r.cadence)}</span>`:'—'}</td>
+    <td>${r.scheduled_at?fd(r.scheduled_at):'—'}</td>
+    <td>${fd(r.created_at)}</td>
+    <td class="tc-actions">
+      <button class="btn btn-blue" onclick="editNL(${r.id})">Edit</button>
+      <button class="btn btn-red"  onclick="delNL(${r.id},this)">Delete</button>
+    </td>
+  </tr>`).join('')
+}
+async function editNL(id) {
+  const data = await GET('newsletters', { id:'eq.'+id, select:'*' })
+  if (!data.length) return
+  const r = data[0]
+  document.getElementById('nl-title').value    = r.title||''
+  document.getElementById('nl-subject').value  = r.subject||''
+  document.getElementById('nl-cadence').value  = r.cadence||''
+  document.getElementById('nl-date').value     = r.scheduled_at ? r.scheduled_at.slice(0,10) : ''
+  document.getElementById('nl-edit-id').value  = r.id
+  if (quill) quill.root.innerHTML = r.body_html||''
+  go('editor', document.querySelectorAll('.sb-link')[4])
+}
+async function delNL(id, btn) {
+  if (!confirm('Delete this newsletter draft?')) return
+  btn.disabled = true
+  try {
+    await DELETE('newsletters', { id:'eq.'+id })
+    toast('Deleted.')
+    await loadSaved()
+  } catch(e) { toast(err(e), 1); btn.disabled=false }
+}
+
+// ── Helpers ───────────────────────────────────────────
+function closeM(id) { document.getElementById(id).classList.remove('open') }
+function fd(iso) { if (!iso) return '—'; return new Date(iso).toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'}) }
+function x(s) { if (s==null) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;') }
+function err(e) { return e?.message || e?.hint || JSON.stringify(e) }
+function toast(msg, isErr) {
+  const t = document.getElementById('toast')
+  t.innerHTML = (isErr ? '⚠ ' : '✓ ') + msg
+  t.style.borderColor = isErr ? 'rgba(239,68,68,0.3)' : 'rgba(34,197,94,0.3)'
+  t.className = 'toast show'
+  clearTimeout(t._t)
+  t._t = setTimeout(() => t.classList.remove('show'), 3000)
+}
+document.querySelectorAll('.modal-bg').forEach(el => el.addEventListener('click', e => { if (e.target===el) el.classList.remove('open') }))
+</script>
+
+</body>
+</html>
