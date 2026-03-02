@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "@supabase/supabase-js": "^2.98.0",
     "puppeteer": "^24.37.5"
   }
 }

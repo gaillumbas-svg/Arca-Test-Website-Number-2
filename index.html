@@ -465,6 +465,83 @@
   </div>
 </section>
 
+<!-- ════════════════════════════════ CONTACT FORM ════════════════════════════════ -->
+<section class="section" style="border-top:1px solid var(--bg-4);">
+  <div class="container">
+    <div style="max-width:600px;margin:0 auto;">
+
+      <!-- Header -->
+      <div style="text-align:center;margin-bottom:48px;">
+        <div class="tag" style="margin-bottom:22px;">
+          <span class="tag-dot"></span>
+          Say Hello
+        </div>
+        <h2 class="text-h2" style="margin-bottom:16px;">Get in Touch</h2>
+        <p style="font-size:16px;line-height:1.75;color:var(--text-muted);">
+          Have a question or want to connect with Arca? Drop us a message and we'll get back to you.
+        </p>
+      </div>
+
+      <!-- Form card -->
+      <div style="background:var(--bg-2);border:1px solid var(--bg-4);border-radius:20px;padding:40px;box-shadow:0 24px 80px rgba(0,0,0,0.35),0 0 0 1px rgba(41,171,226,0.05),inset 0 1px 0 rgba(255,255,255,0.03);">
+
+        <!--
+          SETUP — Google Sheets integration via Apps Script:
+          1. Go to https://sheets.google.com → create a new sheet named "Responses"
+          2. Open Extensions → Apps Script → paste the code from the comment at the
+             bottom of this file, then click Deploy → New deployment → Web app
+             (Execute as: Me, Who has access: Anyone) → copy the web app URL
+          3. Replace YOUR_APPS_SCRIPT_URL below with that URL
+        -->
+        <form id="contact-form" onsubmit="submitToSheets(event)">
+
+          <!-- Name -->
+          <div style="margin-bottom:22px;">
+            <label style="display:block;font-size:12px;font-weight:700;color:var(--text-muted);letter-spacing:0.07em;text-transform:uppercase;margin-bottom:9px;font-family:'Montserrat',sans-serif;">Full Name</label>
+            <input
+              type="text" name="name" required
+              placeholder="Juan dela Cruz"
+              style="width:100%;background:var(--bg-3);border:1.5px solid var(--bg-5);border-radius:10px;padding:13px 16px;color:var(--text);font-family:'Roboto',sans-serif;font-size:15px;outline:none;transition:border-color 0.2s ease,box-shadow 0.2s ease;box-sizing:border-box;"
+              onfocus="this.style.borderColor='#29ABE2';this.style.boxShadow='0 0 0 3px rgba(41,171,226,0.13)'"
+              onblur="this.style.borderColor='var(--bg-5)';this.style.boxShadow='none'">
+          </div>
+
+          <!-- Email -->
+          <div style="margin-bottom:22px;">
+            <label style="display:block;font-size:12px;font-weight:700;color:var(--text-muted);letter-spacing:0.07em;text-transform:uppercase;margin-bottom:9px;font-family:'Montserrat',sans-serif;">Email Address</label>
+            <input
+              type="email" name="email" required
+              placeholder="juan@example.com"
+              style="width:100%;background:var(--bg-3);border:1.5px solid var(--bg-5);border-radius:10px;padding:13px 16px;color:var(--text);font-family:'Roboto',sans-serif;font-size:15px;outline:none;transition:border-color 0.2s ease,box-shadow 0.2s ease;box-sizing:border-box;"
+              onfocus="this.style.borderColor='#29ABE2';this.style.boxShadow='0 0 0 3px rgba(41,171,226,0.13)'"
+              onblur="this.style.borderColor='var(--bg-5)';this.style.boxShadow='none'">
+          </div>
+
+          <!-- Comment -->
+          <div style="margin-bottom:32px;">
+            <label style="display:block;font-size:12px;font-weight:700;color:var(--text-muted);letter-spacing:0.07em;text-transform:uppercase;margin-bottom:9px;font-family:'Montserrat',sans-serif;">Your Message</label>
+            <textarea
+              name="comment" required rows="5"
+              placeholder="Write your message here..."
+              style="width:100%;background:var(--bg-3);border:1.5px solid var(--bg-5);border-radius:10px;padding:13px 16px;color:var(--text);font-family:'Roboto',sans-serif;font-size:15px;outline:none;resize:vertical;min-height:130px;transition:border-color 0.2s ease,box-shadow 0.2s ease;box-sizing:border-box;"
+              onfocus="this.style.borderColor='#29ABE2';this.style.boxShadow='0 0 0 3px rgba(41,171,226,0.13)'"
+              onblur="this.style.borderColor='var(--bg-5)';this.style.boxShadow='none'"></textarea>
+          </div>
+
+          <button type="submit" id="submit-btn" class="btn-primary lg" style="width:100%;justify-content:center;">
+            Send Message →
+          </button>
+        </form>
+      </div>
+
+      <!-- Reassurance line -->
+      <p style="text-align:center;font-size:13px;color:var(--bg-8);margin-top:18px;">
+        We typically respond within 1–2 business days.
+      </p>
+    </div>
+  </div>
+</section>
+
 <!-- ════════════════════════════════ TRUST BAR ════════════════════════════════ -->
 <section class="section-sm" style="border-top:1px solid var(--bg-4);border-bottom:1px solid var(--bg-4);">
   <div class="container">
@@ -1060,6 +1137,70 @@
     });
   }
 })();
+</script>
+
+<!-- ════════════════════════════════ GOOGLE SHEETS FORM HANDLER ════════════════════════════════ -->
+<script>
+/*
+  ── APPS SCRIPT CODE ──────────────────────────────────────────────────────────
+  Paste this into your Google Apps Script editor (Extensions → Apps Script),
+  then deploy as a Web App (Execute as: Me, Who has access: Anyone).
+
+  function doPost(e) {
+    var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+    var data  = JSON.parse(e.postData.contents);
+
+    if (sheet.getLastRow() === 0) {
+      sheet.appendRow(['Timestamp', 'Name', 'Email', 'Message']);
+    }
+
+    sheet.appendRow([
+      new Date().toLocaleString('en-PH', { timeZone: 'Asia/Manila' }),
+      data.name,
+      data.email,
+      data.comment
+    ]);
+
+    return ContentService
+      .createTextOutput(JSON.stringify({ status: 'success' }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+  ──────────────────────────────────────────────────────────────────────────────
+*/
+
+var SHEETS_URL = 'https://script.google.com/macros/s/AKfycbzG_RQm5wRpM5evUiF7eJmNN5IbxFYrCAZNBNGfc6uo1TRe5whpBJgssj-iHTiy49LZjg/exec'; // ← paste your web app URL here
+
+function submitToSheets(e) {
+  e.preventDefault();
+
+  var form = document.getElementById('contact-form');
+  var btn  = document.getElementById('submit-btn');
+
+  btn.disabled    = true;
+  btn.textContent = 'Sending…';
+
+  var payload = {
+    name:    form.elements['name'].value.trim(),
+    email:   form.elements['email'].value.trim(),
+    comment: form.elements['comment'].value.trim()
+  };
+
+  // Apps Script requires no-cors because it doesn't return CORS headers on redirect
+  fetch(SHEETS_URL, {
+    method:  'POST',
+    mode:    'no-cors',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify(payload)
+  })
+  .then(function () {
+    window.location.href = 'thank-you.html';
+  })
+  .catch(function () {
+    btn.disabled    = false;
+    btn.textContent = 'Send Message →';
+    alert('Something went wrong. Please try again.');
+  });
+}
 </script>
 
 </body>
