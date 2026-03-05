@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tester Smart Watch Pro — Discover the Tech Inside</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600;700&family=Manrope:wght@300;400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --accent:  #29ABE2;
+      --accent2: #FFCA28;
+      --text:    #f0ede8;
+      --dim:     #888;
+      --muted:   #444;
+      --fd: 'Oswald', sans-serif;
+      --fb: 'Manrope', sans-serif;
+      --fm: 'Space Mono', monospace;
+    }
+    html { background: #000; }
+    body { background: #000; color: var(--text); font-family: var(--fb); overflow-x: hidden; -webkit-font-smoothing: antialiased; }
+
+    /* ── LOADER ── */
+    #loader {
+      position: fixed; inset: 0; z-index: 9999; background: #000;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 28px;
+      transition: opacity 0.8s ease, visibility 0.8s ease;
+    }
+    #loader.out { opacity: 0; visibility: hidden; pointer-events: none; }
+    .ld-brand { font-family: var(--fd); font-size: 11px; letter-spacing: 0.4em; text-transform: uppercase; color: #333; }
+    .ld-track { width: 220px; height: 1px; background: #111; position: relative; }
+    #ld-bar { position: absolute; left: 0; top: 0; height: 100%; width: 0%; background: var(--accent); transition: width 0.12s linear; box-shadow: 0 0 14px rgba(41,171,226,0.8); }
+    #ld-pct { font-family: var(--fm); font-size: 10px; color: #333; letter-spacing: 0.1em; }
+
+    /* ── HEADER ── */
+    .hdr {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 800;
+      padding: 22px 48px; display: flex; align-items: center; justify-content: space-between;
+      mix-blend-mode: difference;
+    }
+    .hdr-logo { font-family: var(--fd); font-size: 17px; letter-spacing: 0.15em; text-transform: uppercase; color: #fff; text-decoration: none; font-weight: 700; }
+    .hdr-nav { display: flex; gap: 32px; }
+    .hdr-nav a { font-family: var(--fm); font-size: 10px; letter-spacing: 0.13em; text-transform: uppercase; color: #fff; text-decoration: none; opacity: 0.5; transition: opacity 0.2s; }
+    .hdr-nav a:hover { opacity: 1; }
+
+    /* ── HERO ── */
+    .hero {
+      position: relative; width: 100%; height: 100vh; background: #000;
+      display: flex; flex-direction: column; justify-content: flex-end;
+      padding: 0 5vw 9vh; overflow: hidden;
+    }
+    .hero-glow { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse 55% 55% at 72% 40%, rgba(41,171,226,0.07) 0%, transparent 70%); }
+    .lbl { font-family: var(--fm); font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--accent); margin-bottom: 22px; display: block; text-shadow: 0 1px 8px rgba(0,0,0,1); }
+    .hero-h1 { font-family: var(--fd); font-weight: 700; text-transform: uppercase; font-size: clamp(4rem, 11vw, 13rem); line-height: 0.86; letter-spacing: -0.02em; color: #fff; margin-bottom: 24px; }
+    .hero-h1 .w { display: inline-block; overflow: hidden; }
+    .hero-h1 .w span { display: inline-block; }
+    .hero-sub { font-family: var(--fb); font-size: clamp(13px, 1.3vw, 16px); color: var(--dim); font-weight: 300; max-width: 360px; line-height: 1.65; }
+    .scroll-hint { position: absolute; bottom: 38px; right: 5vw; display: flex; align-items: center; gap: 10px; }
+    .scroll-hint span { font-family: var(--fm); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+    .sh-line { width: 36px; height: 1px; background: linear-gradient(to right, var(--muted), transparent); }
+
+    /* ── CANVAS STAGE (fixed, full vp) ── */
+    #stage {
+      position: fixed; inset: 0; z-index: 0;
+      background: #000;
+      clip-path: circle(0% at 50% 50%);
+      pointer-events: none;
+      overflow: hidden;
+    }
+    #canvas {
+      display: block;
+      width: 100%; height: 100%;
+    }
+
+    /* ── DARK OVERLAY ── */
+    #dark-ov { position: fixed; inset: 0; z-index: 1; background: rgba(0,0,0,0.92); pointer-events: none; opacity: 0; }
+
+    /* ── MARQUEES ── */
+    .mq { position: fixed; z-index: 2; pointer-events: none; overflow: hidden; opacity: 0; width: 100%; }
+    .mq.top    { top: 13vh; }
+    .mq.bottom { bottom: 13vh; }
+    .mq-txt { display: inline-block; white-space: nowrap; font-family: var(--fd); font-weight: 700; text-transform: uppercase; color: rgba(255,255,255,0.045); font-size: 12vw; letter-spacing: -0.02em; will-change: transform; }
+
+    /* ── SCROLL CONTAINER ── */
+    #sc { position: relative; height: 900vh; z-index: 3; }
+
+    /* ── SECTIONS ── */
+    .sec { position: absolute; width: 100%; display: flex; align-items: center; pointer-events: none; opacity: 0; }
+    .al { padding-left: 5vw; padding-right: 55vw; background: linear-gradient(to right, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.4) 55%, transparent 100%); }
+    .ar { padding-left: 55vw; padding-right: 5vw; background: linear-gradient(to left,  rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.4) 55%, transparent 100%); }
+    .al .si, .ar .si { max-width: 40vw; }
+
+    .sh { font-family: var(--fd); font-weight: 700; text-transform: uppercase; font-size: clamp(2.4rem, 5vw, 5.5rem); line-height: 0.88; color: #fff; margin-bottom: 16px; text-shadow: 0 2px 32px rgba(0,0,0,0.9), 0 0 80px rgba(0,0,0,0.8); }
+    .sb { font-family: var(--fb); font-size: clamp(13px, 1.2vw, 15px); line-height: 1.8; color: #ccc; font-weight: 400; margin-bottom: 14px; text-shadow: 0 1px 12px rgba(0,0,0,1); }
+    .sn { font-family: var(--fm); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); opacity: 1; text-shadow: 0 1px 8px rgba(0,0,0,1); }
+    .al-line { width: 38px; height: 2px; background: var(--accent); margin-bottom: 16px; box-shadow: 0 0 10px rgba(41,171,226,0.5); }
+    .al-line.gold { background: var(--accent2); box-shadow: 0 0 10px rgba(255,202,40,0.5); }
+
+    /* ── STATS ── */
+    .sec-stats { position: absolute; width: 100%; display: flex; align-items: center; justify-content: center; pointer-events: none; opacity: 0; }
+    .sg { display: grid; grid-template-columns: repeat(4,1fr); width: 100%; max-width: 960px; text-align: center; }
+    .st { padding: 36px 20px; position: relative; }
+    .st + .st::before { content:''; position:absolute; left:0; top:28%; bottom:28%; width:1px; background:rgba(255,255,255,0.07); }
+    .snum { font-family: var(--fd); font-size: clamp(3rem, 6vw, 6.5rem); font-weight: 700; color: #fff; display: block; line-height: 1; letter-spacing: -0.03em; }
+    .ssuf { font-family: var(--fd); font-size: clamp(1.4rem, 2.5vw, 2.8rem); font-weight: 300; color: var(--accent); }
+    .slbl { display: block; font-family: var(--fm); font-size: 10px; letter-spacing: 0.17em; text-transform: uppercase; color: var(--dim); margin-top: 8px; }
+
+    /* ── CTA ── */
+    .sec-cta { padding-left: 5vw; padding-right: 55vw; }
+    .sec-cta .si { max-width: 44vw; }
+    .cta-ey { font-family: var(--fm); font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--accent2); margin-bottom: 18px; display: block; }
+    .cta-h { font-family: var(--fd); font-weight: 700; text-transform: uppercase; font-size: clamp(3rem, 7vw, 8.5rem); line-height: 0.87; color: #fff; margin-bottom: 26px; }
+    .cta-price { display: flex; align-items: baseline; gap: 12px; margin-bottom: 28px; }
+    .p-new { font-family: var(--fd); font-size: 2.8rem; font-weight: 700; color: var(--accent2); letter-spacing: -0.02em; }
+    .p-old { font-family: var(--fb); font-size: 0.95rem; color: var(--muted); text-decoration: line-through; }
+    .p-badge { font-family: var(--fm); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: #000; background: var(--accent2); padding: 4px 10px; border-radius: 2px; }
+    .cta-btn { display: inline-flex; align-items: center; gap: 12px; padding: 16px 40px; border: 1px solid rgba(255,255,255,0.65); font-family: var(--fm); font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase; color: #fff; text-decoration: none; position: relative; overflow: hidden; transition: color 0.32s ease; }
+    .cta-btn::before { content:''; position:absolute; inset:0; background:#fff; transform:scaleX(0); transform-origin:left; transition:transform 0.38s cubic-bezier(0.16,1,0.3,1); }
+    .cta-btn:hover::before { transform: scaleX(1); }
+    .cta-btn:hover { color: #000; }
+    .cta-btn span { position: relative; z-index: 1; }
+
+    /* ── FOOTER ── */
+    #foot { position: absolute; bottom: 0; left: 0; right: 0; padding: 32px 5vw; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.04); z-index: 4; }
+    #foot p { font-family: var(--fm); font-size: 10px; letter-spacing: 0.1em; color: var(--muted); text-transform: uppercase; }
+    .fl { display: flex; gap: 24px; }
+    .fl a { font-family: var(--fm); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); text-decoration: none; transition: color 0.2s; }
+    .fl a:hover { color: var(--text); }
+
+    @media (max-width: 768px) {
+      .hdr { padding: 18px 20px; } .hdr-nav { display: none; }
+      .hero { padding: 0 20px 9vh; }
+      #sc { height: 600vh; }
+      .al, .ar { padding: 0 20px; align-items: flex-end; padding-bottom: 8vh; }
+      .al .si, .ar .si { max-width: 100%; }
+      .si { background: rgba(0,0,0,0.82); padding: 20px; }
+      .sec-cta { padding: 0 20px; } .sec-cta .si { max-width: 100%; }
+      .sg { grid-template-columns: repeat(2,1fr); } .st + .st::before { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- LOADER -->
+<div id="loader">
+  <div class="ld-brand">Tester Smart Watch Pro</div>
+  <div class="ld-track"><div id="ld-bar"></div></div>
+  <div id="ld-pct">0%</div>
+</div>
+
+<!-- HEADER -->
+<header class="hdr">
+  <a href="index.html" class="hdr-logo">Arca</a>
+  <nav class="hdr-nav">
+    <a href="#features">Features</a>
+    <a href="#specs">Specs</a>
+    <a href="#order">Order</a>
+  </nav>
+</header>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-glow"></div>
+  <span class="lbl">001 / Tester Smart Watch Pro</span>
+  <h1 class="hero-h1">
+    <div class="w"><span>Discover</span></div><br>
+    <div class="w"><span>the tech</span></div><br>
+    <div class="w"><span>inside.</span></div>
+  </h1>
+  <p class="hero-sub">Every layer. Every sensor. Every heartbeat. Engineered to precision.</p>
+  <div class="scroll-hint"><span>Scroll to explore</span><div class="sh-line"></div></div>
+</section>
+
+<!-- CANVAS STAGE -->
+<div id="stage">
+  <canvas id="canvas"></canvas>
+</div>
+
+<!-- DARK OVERLAY -->
+<div id="dark-ov"></div>
+
+<!-- MARQUEES -->
+<div class="mq top"    data-spd="-30"><div class="mq-txt">PRECISION · HEALTH · PERFORMANCE · SMART WATCH · ENGINEERING ·&nbsp;&nbsp;</div></div>
+<div class="mq bottom" data-spd="24"> <div class="mq-txt">DISSECTION · TECHNOLOGY · INNOVATION · ARCA · SMART WATCH ·&nbsp;&nbsp;</div></div>
+
+<!-- SCROLL CONTAINER -->
+<div id="sc">
+
+  <!-- 001 Overview — fade-up 8–20% -->
+  <section class="sec al" data-enter="8" data-leave="20" data-anim="fade-up" style="top:14%;transform:translateY(-50%);height:100vh;">
+    <div class="si">
+      <span class="lbl">001 / Overview</span>
+      <div class="al-line"></div>
+      <h2 class="sh">Built for<br>those who<br>never stop.</h2>
+      <p class="sb">The Tester Smart Watch Pro strips away the ordinary. Inside its seamless stainless shell lives a generation of sensors, chips, and precision engineering.</p>
+      <span class="sn">← Watch rotates as you scroll</span>
+    </div>
+  </section>
+
+  <!-- 002 Heart — slide-left 20–33% -->
+  <section id="features" class="sec al" data-enter="20" data-leave="33" data-anim="slide-left" style="top:26.5%;transform:translateY(-50%);height:100vh;">
+    <div class="si">
+      <span class="lbl">002 / Health Core</span>
+      <div class="al-line"></div>
+      <h2 class="sh">Heart.<br>Blood.<br>Breath.</h2>
+      <p class="sb">A 24-channel optical biosensor array. Continuous heart rate, SpO₂, skin temperature — monitored every second, all day long.</p>
+      <span class="sn">↑ Medical-grade accuracy</span>
+    </div>
+  </section>
+
+  <!-- 003 GPS — slide-right 33–46% -->
+  <section class="sec ar" data-enter="33" data-leave="46" data-anim="slide-right" style="top:39.5%;transform:translateY(-50%);height:100vh;">
+    <div class="si">
+      <span class="lbl">003 / Navigation</span>
+      <div class="al-line"></div>
+      <h2 class="sh">Find your<br>signal.<br>Anywhere.</h2>
+      <p class="sb">Dual-band L1+L5 GPS locks position with sub-meter accuracy. Five satellite systems. Mountains, cities, open sea.</p>
+      <span class="sn">→ 5 satellite systems</span>
+    </div>
+  </section>
+
+  <!-- 004 Battery — scale-up 46–59% -->
+  <section class="sec al" data-enter="46" data-leave="59" data-anim="scale-up" style="top:52.5%;transform:translateY(-50%);height:100vh;">
+    <div class="si">
+      <span class="lbl">004 / Power System</span>
+      <div class="al-line gold"></div>
+      <h2 class="sh">Seven<br>days.<br>One charge.</h2>
+      <p class="sb">A custom 486mAh lithium polymer cell. Magnetic fast-charge from 0 to 100% in 2 hours.</p>
+      <span class="sn">↑ 486 mAh · 20-day power saver</span>
+    </div>
+  </section>
+
+  <!-- 005 Stats — stagger-up 59–72% -->
+  <section id="specs" class="sec sec-stats" data-enter="59" data-leave="72" data-anim="stagger-up" data-ov-e="57" data-ov-l="74" style="top:65.5%;transform:translateY(-50%);height:100vh;">
+    <div class="sg">
+      <div class="st"><span class="snum" data-val="7">0</span><span class="ssuf">days</span><span class="slbl">Battery Life</span></div>
+      <div class="st"><span class="snum" data-val="50">0</span><span class="ssuf">ATM</span><span class="slbl">Water Resistance</span></div>
+      <div class="st"><span class="snum" data-val="24">0</span><span class="ssuf">ch</span><span class="slbl">Health Sensors</span></div>
+      <div class="st"><span class="snum" data-val="100">0</span><span class="ssuf">+</span><span class="slbl">Sport Modes</span></div>
+    </div>
+  </section>
+
+  <!-- 006 Chip — clip-reveal 72–85% -->
+  <section class="sec ar" data-enter="72" data-leave="85" data-anim="clip-reveal" style="top:78.5%;transform:translateY(-50%);height:100vh;">
+    <div class="si">
+      <span class="lbl">005 / Inside the Machine</span>
+      <div class="al-line"></div>
+      <h2 class="sh">Chip.<br>Board.<br>Soul.</h2>
+      <p class="sb">Dual-core processor + biosensor co-processor. Real-time AI health analysis without sacrificing battery life.</p>
+      <span class="sn">→ 4nm process · Always-on health</span>
+    </div>
+  </section>
+
+  <!-- 007 CTA — rotate-in 85–100% persist -->
+  <section id="order" class="sec sec-cta" data-enter="85" data-leave="100" data-anim="rotate-in" data-persist="true" style="top:92.5%;transform:translateY(-50%);height:100vh;">
+    <div class="si">
+      <span class="cta-ey">006 / Own It</span>
+      <h2 class="cta-h">Get it<br>before<br>the world.</h2>
+      <div class="cta-price">
+        <span class="p-new">₱6,499</span>
+        <span class="p-old">₱8,999</span>
+        <span class="p-badge">Founding Price</span>
+      </div>
+      <a href="index.html#contact" class="cta-btn"><span>Pre-Order Now</span><span>→</span></a>
+      <p class="sb" style="margin-top:18px;font-size:12px;opacity:0.45;">Ships Q3 2026 · Free shipping · 30-day returns</p>
+    </div>
+  </section>
+
+  <footer id="foot">
+    <p>© 2026 Arca · arca.ph</p>
+    <div class="fl"><a href="index.html">Home</a><a href="index.html#contact">Contact</a><a href="#">Instagram</a></div>
+  </footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/lenis@1/dist/lenis.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/ScrollTrigger.min.js"></script>
+<script>
+/* ══════════════════════════════════════════════════
+   CONFIG
+══════════════════════════════════════════════════ */
+const FRAME_COUNT = 121;
+const FRAME_BASE  = 'product-frames/frame_';
+const FRAME_EXT   = '.jpg';
+const FRAME_SPEED = 2.0; // complete by 50% scroll
+
+/* ══════════════════════════════════════════════════
+   ELEMENTS
+══════════════════════════════════════════════════ */
+const loader   = document.getElementById('loader');
+const ldBar    = document.getElementById('ld-bar');
+const ldPct    = document.getElementById('ld-pct');
+const stage    = document.getElementById('stage');
+const canvas   = document.getElementById('canvas');
+const ctx      = canvas.getContext('2d');
+const darkOv   = document.getElementById('dark-ov');
+const sc       = document.getElementById('sc');
+
+/* ══════════════════════════════════════════════════
+   CANVAS SIZING
+══════════════════════════════════════════════════ */
+const DPR = Math.min(window.devicePixelRatio || 1, 2);
+function resizeCanvas() {
+  canvas.width  = window.innerWidth  * DPR;
+  canvas.height = window.innerHeight * DPR;
+  canvas.style.width  = window.innerWidth  + 'px';
+  canvas.style.height = window.innerHeight + 'px';
+  drawFrame(curFrame);
+}
+window.addEventListener('resize', resizeCanvas);
+
+/* ══════════════════════════════════════════════════
+   FRAME DRAWING — padded contain, crisper with DPR
+══════════════════════════════════════════════════ */
+const frames = new Array(FRAME_COUNT).fill(null);
+let curFrame = 0;
+const IMAGE_SCALE = 0.88; // slightly padded, watch doesn't clip header
+let curTransform = { rotY: 0, rotX: 0, rotZ: 0, scale: 1, ty: 0 };
+
+function drawFrame(idx) {
+  const img = frames[idx];
+  if (!img) return;
+  const cw = canvas.width, ch = canvas.height;
+  const iw = img.naturalWidth, ih = img.naturalHeight;
+  const { rotY, rotX, rotZ, scale, ty } = curTransform;
+
+  // Pseudo-3D squish: horizontal narrows with rotY, vertical narrows with rotX
+  const squishX = Math.abs(Math.cos(rotY * Math.PI / 180));
+  const squishY = Math.abs(Math.cos(rotX * Math.PI / 180));
+
+  const baseScale = Math.max(cw / iw, ch / ih) * IMAGE_SCALE * scale;
+  const dw = iw * baseScale * squishX;
+  const dh = ih * baseScale * squishY;
+  const dx = (cw - dw) / 2;
+  const dy = (ch - dh) / 2 + ty * DPR;
+
+  ctx.save();
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, cw, ch);
+  // rotZ simulated via canvas rotation from center
+  ctx.translate(cw / 2, ch / 2);
+  ctx.rotate(rotZ * Math.PI / 180);
+  ctx.translate(-cw / 2, -ch / 2);
+  ctx.drawImage(img, dx, dy, dw, dh);
+  ctx.restore();
+}
+
+/* ══════════════════════════════════════════════════
+   PRELOADER — first 12 fast, rest background
+══════════════════════════════════════════════════ */
+let loaded = 0;
+function pad(n) { return String(n).padStart(4, '0'); }
+
+function setProgress(p) {
+  ldBar.style.width = (p * 100) + '%';
+  ldPct.textContent = Math.round(p * 100) + '%';
+}
+
+function loadFrame(i) {
+  return new Promise(res => {
+    const img = new Image();
+    img.onload = img.onerror = () => {
+      frames[i] = img;
+      loaded++;
+      setProgress(loaded / FRAME_COUNT);
+      res();
+    };
+    img.src = `${FRAME_BASE}${pad(i + 1)}${FRAME_EXT}`;
+  });
+}
+
+async function boot() {
+  // Load first 12 frames fast
+  const FIRST = 12;
+  await Promise.all(Array.from({ length: FIRST }, (_, i) => loadFrame(i)));
+  resizeCanvas();
+  drawFrame(0);
+
+  // Show page, hide loader
+  loader.classList.add('out');
+  initPage();
+
+  // Load rest in background
+  for (let i = FIRST; i < FRAME_COUNT; i++) loadFrame(i);
+}
+
+boot();
+
+/* ══════════════════════════════════════════════════
+   3D MOVEMENT SYSTEM
+   Watch rotates & scales as scroll progresses.
+   p = 0→1 over full scroll range.
+══════════════════════════════════════════════════ */
+function getWatchTransform(p) {
+  // Rotation arc: starts at +18deg (tilted right), sweeps to -18deg (tilted left), back to 0
+  const rotY  = Math.sin(p * Math.PI * 1.5) * 22;           // -22 to +22 deg swing
+  const rotX  = Math.sin(p * Math.PI * 2)   * 8;            // subtle tilt up/down
+  const rotZ  = Math.sin(p * Math.PI)       * 4;            // gentle roll
+  const scale = 1 + Math.sin(p * Math.PI)   * 0.18;         // grows mid-scroll, shrinks at end
+  const ty    = Math.sin(p * Math.PI * 2)   * 30;           // float up/down (px, CSS space)
+  return { rotY, rotX, rotZ, scale, ty };
+}
+
+/* ══════════════════════════════════════════════════
+   SECTION ANIMATION BUILDER
+══════════════════════════════════════════════════ */
+function buildTL(section) {
+  const type = section.dataset.anim;
+  const kids = section.querySelectorAll('.lbl,.cta-ey,.al-line,.sh,.cta-h,.sb,.sn,.cta-price,.cta-btn,.st');
+  const tl   = gsap.timeline({ paused: true });
+  const E    = { 'clip-reveal': 'power4.inOut', 'scale-up': 'power2.out', default: 'power3.out' };
+  const ease = E[type] || E.default;
+  switch (type) {
+    case 'fade-up':     tl.from(kids, { y:50,   opacity:0, stagger:0.12, duration:0.9, ease }); break;
+    case 'slide-left':  tl.from(kids, { x:-80,  opacity:0, stagger:0.13, duration:0.9, ease }); break;
+    case 'slide-right': tl.from(kids, { x:80,   opacity:0, stagger:0.13, duration:0.9, ease }); break;
+    case 'scale-up':    tl.from(kids, { scale:0.82, opacity:0, stagger:0.12, duration:1.0, ease }); break;
+    case 'rotate-in':   tl.from(kids, { y:40, rotation:3, opacity:0, stagger:0.1, duration:0.9, ease }); break;
+    case 'stagger-up':  tl.from(kids, { y:60,  opacity:0, stagger:0.15, duration:0.8, ease }); break;
+    case 'clip-reveal': tl.from(kids, { clipPath:'inset(100% 0 0 0)', opacity:0, stagger:0.15, duration:1.2, ease }); break;
+  }
+  return tl;
+}
+
+/* ══════════════════════════════════════════════════
+   INIT (after first batch loaded)
+══════════════════════════════════════════════════ */
+function initPage() {
+  // Hero word reveal
+  gsap.from('.lbl', { opacity:0, x:-20, duration:0.7, delay:0.1, ease:'power2.out' });
+  gsap.from('.hero-h1 .w span', { y:'110%', opacity:0, stagger:0.12, duration:1.0, delay:0.15, ease:'power3.out' });
+  gsap.from('.hero-sub',    { opacity:0, y:16, duration:0.7, delay:0.65, ease:'power2.out' });
+  gsap.from('.scroll-hint', { opacity:0, x:16, duration:0.7, delay:0.9,  ease:'power2.out' });
+
+  // Lenis
+  const lenis = new Lenis({ duration: 1.2, easing: t => Math.min(1, 1.001 - Math.pow(2, -10*t)), smoothWheel: true });
+  lenis.on('scroll', ScrollTrigger.update);
+  gsap.ticker.add(time => lenis.raf(time * 1000));
+  gsap.ticker.lagSmoothing(0);
+
+  /* ── Master scroll driver ── */
+  ScrollTrigger.create({
+    trigger: sc, start: 'top top', end: 'bottom bottom',
+    scrub: 0.6,
+    onUpdate: (self) => {
+      const p = self.progress;
+
+      // 1. Hero fade out
+      document.querySelector('.hero').style.opacity = Math.max(0, 1 - p * 18);
+
+      // 2. Canvas circle-wipe reveal
+      const wipe = Math.min(1, Math.max(0, (p - 0.008) / 0.065));
+      stage.style.clipPath = `circle(${wipe * 85}% at 50% 50%)`;
+
+      // 3. Frame scrub
+      const fi = Math.min(Math.floor(Math.min(p * FRAME_SPEED, 1) * FRAME_COUNT), FRAME_COUNT - 1);
+      curFrame = fi;
+
+      // 4. ★ 3D MOVEMENT — simulated in canvas 2D, no DOM rotation (eliminates rectangle artifact)
+      curTransform = getWatchTransform(p);
+      requestAnimationFrame(() => drawFrame(curFrame));
+
+      // 5. Dark overlay (stats)
+      document.querySelectorAll('.sec[data-ov-e]').forEach(s => {
+        const oe = parseFloat(s.dataset.ovE) / 100;
+        const ol = parseFloat(s.dataset.ovL) / 100;
+        const fd = 0.028;
+        let op = 0;
+        if      (p >= oe - fd && p <= oe)  op = (p - (oe - fd)) / fd;
+        else if (p > oe && p < ol)          op = 0.9;
+        else if (p >= ol && p <= ol + fd)   op = 0.9 * (1 - (p - ol) / fd);
+        darkOv.style.opacity = op;
+      });
+    }
+  });
+
+  /* ── Marquees ── */
+  document.querySelectorAll('.mq').forEach(el => {
+    const spd = parseFloat(el.dataset.spd) || -28;
+    gsap.to(el.querySelector('.mq-txt'), {
+      xPercent: spd, ease: 'none',
+      scrollTrigger: { trigger: sc, start: 'top top', end: 'bottom bottom', scrub: true }
+    });
+    ScrollTrigger.create({
+      trigger: sc, start: 'top top', end: 'bottom bottom', scrub: true,
+      onUpdate: (self) => {
+        const p = self.progress;
+        const s = 0.05, e = 0.82;
+        el.style.opacity = p < s ? p / s : p > e ? Math.max(0, 1-(p-e)/0.1) : 1;
+      }
+    });
+  });
+
+  /* ── Content sections ── */
+  document.querySelectorAll('.sec, .sec-stats').forEach(sec => {
+    const enter   = parseFloat(sec.dataset.enter) / 100;
+    const leave   = parseFloat(sec.dataset.leave) / 100;
+    const persist = sec.dataset.persist === 'true';
+    const tl      = buildTL(sec);
+
+    ScrollTrigger.create({
+      trigger: sc, start: 'top top', end: 'bottom bottom', scrub: false,
+      onUpdate: (self) => {
+        const p = self.progress;
+        const inR = p >= enter && p <= leave;
+        const done = persist && p > leave;
+        sec.style.opacity       = (inR || done) ? '1' : '0';
+        sec.style.pointerEvents = (inR || done) ? 'auto' : 'none';
+        if      (inR)  tl.progress(Math.min((p - enter) / (leave - enter) * 2, 1));
+        else if (done) tl.progress(1);
+        else           tl.progress(0);
+      }
+    });
+  });
+
+  /* ── Counters ── */
+  document.querySelectorAll('.snum').forEach(el => {
+    const target = parseFloat(el.dataset.val);
+    gsap.from(el, {
+      textContent: 0, duration: 2.0, ease: 'power1.out',
+      snap: { textContent: 1 },
+      scrollTrigger: { trigger: el.closest('.sec'), start: 'top 80%', toggleActions: 'play none none reverse' }
+    });
+  });
+}
+</script>
+</body>
+</html>
