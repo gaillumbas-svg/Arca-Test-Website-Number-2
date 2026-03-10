@@ -4,6 +4,8 @@ brand-guidelines.png
 dhero.studio_.png
 .env
 
+.claude/
+
 # Playwright
 /test-results/
 /playwright-report/

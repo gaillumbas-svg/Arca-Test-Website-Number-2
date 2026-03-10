@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sights — Wonders of the World · arca.ph</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg:        #080808;
+      --bg-2:      #111111;
+      --bg-3:      #1A1A1A;
+      --surface:   #1E1E1E;
+      --border:    #2A2A2A;
+      --border-2:  #333333;
+      --text:      #F0F0F0;
+      --mid:       #888888;
+      --dim:       #555555;
+      --gold:      #C9A84C;
+      --gold-2:    #A8893A;
+      --gold-dim:  rgba(201,168,76,0.12);
+      --font-head: 'Bebas Neue', sans-serif;
+      --font:      'DM Sans', system-ui, sans-serif;
+    }
+    *, *::before, *::after { box-sizing: border-box; -webkit-font-smoothing: antialiased; }
+    html { scroll-behavior: smooth; line-height: 1.4; }
+    body { margin: 0; background: var(--bg); color: var(--mid); font-family: var(--font); font-size: 16px; overflow-x: hidden; }
+    h1,h2,h3,h4 { margin: 0; font-family: var(--font-head); color: var(--text); letter-spacing: 0.02em; }
+    p { margin: 0; }
+    a { text-decoration: none; }
+
+    /* ── Background canvas ─────────────────────────────── */
+    #bg-canvas { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; display: block; }
+    #bg-overlay { position: fixed; inset: 0; z-index: 1; background: rgba(8,8,8,0.6); pointer-events: none; }
+    #bg-loader { position: fixed; inset: 0; z-index: 999; background: var(--bg);
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
+      transition: opacity 0.5s ease; }
+    #bg-loader.hidden { opacity: 0; pointer-events: none; }
+    #bg-loader .loader-label { font-size: 10px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--dim); }
+    #bg-loader .loader-bar { width: 200px; height: 1px; background: var(--border); position: relative; overflow: hidden; }
+    #bg-loader .loader-fill { position: absolute; top: 0; left: 0; bottom: 0; width: 0%; background: linear-gradient(90deg, var(--gold-2), var(--gold)); transition: width 0.1s ease; }
+    #bg-loader .loader-pct { font-family: var(--font-head); font-size: 48px; color: var(--text); letter-spacing: 0.02em; line-height: 1; }
+
+    /* ── Grain ─────────────────────────────────────────── */
+    #grain { position: fixed; inset: 0; z-index: 902; pointer-events: none; opacity: 0.04;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      background-size: 200px 200px; }
+
+    /* ── Scroll bar ─────────────────────────────────────── */
+    #scroll-bar { position: fixed; top: 0; left: 0; z-index: 901; height: 2px; width: 0%;
+      background: linear-gradient(90deg, var(--gold-2), var(--gold)); transition: width 0.05s linear; }
+
+    .container { max-width: 1280px; margin: 0 auto; padding: 0 32px; }
+
+    /* ── NAV ────────────────────────────────────────────── */
+    nav { position: fixed; top: 0; left: 0; right: 0; z-index: 500; isolation: isolate;
+      background: rgba(8,8,8,0.9); backdrop-filter: blur(20px); border-bottom: 1px solid var(--border); }
+    .nav-inner { display: flex; align-items: center; justify-content: space-between; height: 64px; }
+    .logo { display: flex; align-items: center; gap: 10px; font-family: var(--font-head); font-size: 22px; letter-spacing: 0.06em; color: var(--text); }
+    .logo img { width: 34px; height: 34px; object-fit: contain; filter: grayscale(1) brightness(1.2); }
+    .nav-links { display: flex; align-items: center; gap: 36px; }
+    .nav-link { font-size: 13px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: var(--dim); transition: color 0.15s ease; position: relative; }
+    .nav-link::after { content: ''; position: absolute; bottom: -4px; left: 0; right: 100%; height: 1px; background: var(--gold); transition: right 0.2s ease; }
+    .nav-link:hover, .nav-link.active { color: var(--text); }
+    .nav-link:hover::after, .nav-link.active::after { right: 0; }
+    .btn-gold { font-family: var(--font); font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+      padding: 10px 22px; border-radius: 3px; border: 1px solid var(--gold); background: transparent; color: var(--gold);
+      cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+      transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease, transform 0.15s cubic-bezier(0.34,1.56,0.64,1); }
+    .btn-gold:hover { background: var(--gold); color: var(--bg); box-shadow: 0 0 24px rgba(201,168,76,0.3); transform: translateY(-1px); }
+    .btn-gold:active { transform: translateY(0); }
+
+    /* ── HERO ───────────────────────────────────────────── */
+    .hero {
+      min-height: 100svh;
+      padding-top: 64px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      align-items: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero-bg { position: absolute; inset: 0; pointer-events: none;
+      background: radial-gradient(ellipse 70% 60% at 65% 40%, rgba(201,168,76,0.06) 0%, transparent 60%),
+                  radial-gradient(ellipse 40% 50% at 15% 70%, rgba(201,168,76,0.03) 0%, transparent 50%); }
+    .hero-content { position: relative; z-index: 2; padding: 80px 0 80px 0; }
+    .eyebrow { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+    .eyebrow-line { width: 40px; height: 1px; background: var(--gold); flex-shrink: 0; }
+    .eyebrow-text { font-size: 11px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold); }
+    .hero-title { font-size: clamp(64px, 8.5vw, 130px); line-height: 0.9; letter-spacing: 0.01em; color: var(--text); margin-bottom: 28px; }
+    .hero-title .outline { -webkit-text-stroke: 1.5px rgba(240,240,240,0.2); color: transparent; display: block; }
+    .hero-title .sub-line { display: block; font-size: clamp(22px, 3vw, 44px); font-family: var(--font); font-weight: 300; letter-spacing: 0.01em; color: var(--mid); margin-top: 16px; line-height: 1.4; }
+    .hero-desc { font-size: 15px; line-height: 1.75; color: var(--mid); max-width: 420px; margin-bottom: 36px; }
+    .hero-stats { display: flex; gap: 0; border-top: 1px solid var(--border); margin-top: 40px; padding-top: 32px; }
+    .hero-stat { padding-right: 36px; margin-right: 36px; border-right: 1px solid var(--border); }
+    .hero-stat:last-child { border-right: none; }
+    .stat-num { font-family: var(--font-head); font-size: 40px; line-height: 1; color: var(--gold); margin-bottom: 4px; }
+    .stat-label { font-size: 10px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--dim); }
+
+    /* ── Hero mosaic ───────────────────────────────────── */
+    .hero-mosaic {
+      height: 100svh;
+      padding: 70px 0 20px 32px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 1.3fr 1fr;
+      gap: 8px;
+      overflow: hidden;
+    }
+    .mosaic-cell { position: relative; overflow: hidden; border-radius: 6px; border: 1px solid var(--border); }
+    .mosaic-cell.tall { grid-row: span 2; }
+    .mosaic-cell img { width: 100%; height: 100%; object-fit: cover; filter: grayscale(20%) brightness(0.68) contrast(1.1);
+      transition: transform 0.6s cubic-bezier(0.16,1,0.3,1), filter 0.4s ease; }
+    .mosaic-cell:hover img { transform: scale(1.06); filter: grayscale(5%) brightness(0.82); }
+    .mosaic-cell::after { content: ''; position: absolute; inset: 0;
+      background: linear-gradient(180deg, transparent 40%, rgba(8,8,8,0.8) 100%); }
+    .mosaic-label { position: absolute; bottom: 10px; left: 12px; z-index: 2;
+      font-size: 9px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(240,240,240,0.6); }
+    .mosaic-gold-tag { position: absolute; top: 10px; left: 10px; z-index: 2;
+      font-size: 8px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--gold); background: rgba(8,8,8,0.75); padding: 3px 8px; border-radius: 3px;
+      border: 1px solid rgba(201,168,76,0.2); backdrop-filter: blur(6px); }
+
+    /* ── Ticker ─────────────────────────────────────────── */
+    .ticker-wrap { overflow: hidden; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+      padding: 13px 0; background: var(--bg-2); }
+    .ticker-track { display: flex; gap: 56px; white-space: nowrap; animation: ticker 32s linear infinite; }
+    .ticker-item { display: flex; align-items: center; gap: 14px; font-size: 11px; font-weight: 600;
+      letter-spacing: 0.12em; text-transform: uppercase; color: var(--dim); flex-shrink: 0; }
+    .ticker-item span { color: var(--gold); }
+    .ticker-dot { width: 3px; height: 3px; border-radius: 50%; background: var(--gold); flex-shrink: 0; }
+    @keyframes ticker { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+
+
+    /* ── Sights grid ────────────────────────────────────── */
+    .sights-section { padding: 100px 0; }
+    .section-eyebrow { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+    .section-title { font-size: clamp(32px, 5vw, 60px); line-height: 0.95; margin-bottom: 10px; }
+    .section-sub { font-size: 14px; line-height: 1.7; color: var(--dim); max-width: 480px; }
+
+    .filter-bar { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 48px; }
+    .filter-btn { font-family: var(--font); font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase;
+      padding: 7px 16px; border-radius: 2px; border: 1px solid var(--border-2); background: transparent; color: var(--dim);
+      cursor: pointer; transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease, transform 0.15s cubic-bezier(0.34,1.56,0.64,1); }
+    .filter-btn:hover { color: var(--text); border-color: var(--mid); }
+    .filter-btn.active { border-color: var(--gold); color: var(--gold); background: var(--gold-dim); }
+    .filter-btn:active { transform: scale(0.96); }
+
+    .sights-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+    @media (max-width: 700px) { .sights-grid { grid-template-columns: 1fr; } }
+
+    .sight-card { background: var(--bg-2); border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
+      display: grid; grid-template-columns: 1fr 1fr; cursor: pointer;
+      transition: transform 0.3s cubic-bezier(0.16,1,0.3,1), border-color 0.3s ease, box-shadow 0.3s ease; }
+    .sight-card:hover { transform: translateY(-4px); border-color: rgba(201,168,76,0.3); box-shadow: 0 20px 60px rgba(0,0,0,0.5); }
+    .sight-card.hidden { display: none; }
+
+    .sight-img { position: relative; aspect-ratio: 3/2; overflow: hidden; }
+    .sight-img img { width: 100%; height: 100%; object-fit: cover; filter: grayscale(20%) brightness(0.7) contrast(1.08);
+      transition: transform 0.6s cubic-bezier(0.16,1,0.3,1), filter 0.4s ease; }
+    .sight-card:hover .sight-img img { transform: scale(1.06); filter: grayscale(5%) brightness(0.82); }
+    .sight-img-overlay { position: absolute; inset: 0; background: linear-gradient(to right, transparent 60%, rgba(8,8,8,0.6) 100%); }
+    .sight-region { position: absolute; top: 10px; left: 10px; font-size: 8px; font-weight: 700; letter-spacing: 0.12em;
+      text-transform: uppercase; padding: 3px 8px; border-radius: 2px; background: rgba(8,8,8,0.8);
+      color: var(--gold); border: 1px solid rgba(201,168,76,0.22); backdrop-filter: blur(6px); }
+
+    .sight-body { padding: 22px 22px 22px 20px; display: flex; flex-direction: column; justify-content: space-between; }
+    .sight-name { font-family: var(--font-head); font-size: 22px; color: var(--text); line-height: 1; margin-bottom: 5px; }
+    .sight-place { font-size: 11px; font-weight: 500; color: var(--gold); margin-bottom: 10px; display: flex; align-items: center; gap: 4px; }
+    .sight-desc { font-size: 12.5px; line-height: 1.65; color: var(--dim); flex: 1; margin-bottom: 14px; }
+    .sight-meta { display: flex; align-items: center; justify-content: space-between; padding-top: 12px; border-top: 1px solid var(--border); }
+    .sight-tags { display: flex; gap: 5px; }
+    .sight-tag { font-size: 9px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; padding: 3px 7px;
+      border-radius: 2px; background: var(--bg-3); color: var(--dim); border: 1px solid var(--border-2); }
+    .sight-tag.gold { background: var(--gold-dim); color: var(--gold); border-color: rgba(201,168,76,0.18); }
+    .sight-arrow { width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--border-2);
+      display: flex; align-items: center; justify-content: center; color: var(--dim); flex-shrink: 0;
+      transition: border-color 0.2s, color 0.2s, transform 0.2s cubic-bezier(0.34,1.56,0.64,1); }
+    .sight-card:hover .sight-arrow { border-color: var(--gold); color: var(--gold); transform: translateX(3px); }
+
+    /* ── Feature row ─────────────────────────────────────── */
+    .feature-row { padding: 56px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); background: var(--bg-2); }
+    .feature-row-inner { display: grid; grid-template-columns: repeat(4,1fr); }
+    .feature-item { padding: 20px 32px; border-right: 1px solid var(--border); text-align: center; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+    .feature-item:last-child { border-right: none; }
+    .feature-icon { width: 40px; height: 40px; border-radius: 8px; border: 1px solid var(--border-2); display: flex; align-items: center; justify-content: center; color: var(--gold); background: var(--bg-3); }
+    .feature-label { font-family: var(--font-head); font-size: 17px; color: var(--text); }
+    .feature-sub { font-size: 11px; line-height: 1.5; color: var(--dim); }
+
+    /* ── CTA ─────────────────────────────────────────────── */
+    .cta-section { padding: 0 0 100px; }
+    .cta-banner { position: relative; overflow: hidden; border-radius: 8px; border: 1px solid var(--border-2);
+      background: var(--bg-2); padding: 72px 64px; text-align: center; }
+    .cta-banner::before { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, transparent 10%, var(--gold) 50%, transparent 90%); }
+    .cta-banner-bg { position: absolute; inset: 0; pointer-events: none;
+      background: radial-gradient(ellipse 60% 80% at 50% 110%, rgba(201,168,76,0.08) 0%, transparent 60%); }
+    .cta-title { font-size: clamp(32px, 5.5vw, 64px); letter-spacing: 0.02em; line-height: 0.95; color: var(--text); margin-bottom: 14px; position: relative; }
+    .cta-sub { font-size: 15px; line-height: 1.7; color: var(--mid); max-width: 440px; margin: 0 auto 28px; position: relative; }
+
+    /* ── Footer ──────────────────────────────────────────── */
+    footer { border-top: 1px solid var(--border); padding: 28px 0; }
+    .footer-inner { display: flex; align-items: center; justify-content: space-between; }
+    .footer-copy { font-size: 12px; color: var(--dim); }
+    .footer-links { display: flex; gap: 24px; }
+    .footer-link { font-size: 12px; font-weight: 500; color: var(--dim); transition: color 0.15s ease; }
+    .footer-link:hover { color: var(--text); }
+
+    /* ── Scroll fade ─────────────────────────────────────── */
+    .fade-up { opacity: 0; transform: translateY(28px); transition: opacity 0.6s ease, transform 0.6s cubic-bezier(0.16,1,0.3,1); }
+    .fade-up.visible { opacity: 1; transform: translateY(0); }
+    .fd1 { transition-delay: 0.1s; } .fd2 { transition-delay: 0.2s; } .fd3 { transition-delay: 0.3s; }
+
+    /* ── Mobile ──────────────────────────────────────────── */
+    .mob-btn { display: none; background: none; border: none; cursor: pointer; color: var(--text); padding: 4px; }
+    @media (max-width: 768px) {
+      .nav-links { display: none; } .mob-btn { display: flex; }
+      .hero { grid-template-columns: 1fr; min-height: auto; }
+      .hero-content { padding: 48px 0 32px; }
+      .hero-mosaic { display: none; }
+      .sight-card { grid-template-columns: 1fr; }
+      .sight-img { aspect-ratio: 16/9; }
+      .footer-inner { flex-direction: column; gap: 14px; text-align: center; }
+      .feature-row-inner { grid-template-columns: repeat(2,1fr); }
+    }
+  </style>
+</head>
+<body>
+
+<canvas id="bg-canvas" aria-hidden="true"></canvas>
+<div id="bg-overlay" aria-hidden="true"></div>
+<div id="bg-loader">
+  <div class="loader-label">Loading</div>
+  <div class="loader-bar"><div class="loader-fill" id="loader-fill"></div></div>
+  <div class="loader-pct" id="loader-pct">0%</div>
+</div>
+<div id="grain" aria-hidden="true"></div>
+<div id="scroll-bar" aria-hidden="true"></div>
+
+<!-- NAV -->
+<nav>
+  <div class="container">
+    <div class="nav-inner">
+      <a href="index.html" class="logo">
+        <img src="Arca.png" alt="Arca" onerror="this.style.display='none'">
+        ARCA
+      </a>
+      <div class="nav-links">
+        <a href="index.html" class="nav-link">Home</a>
+        <a href="#" class="nav-link active">Sights</a>
+        <a href="index.html#community" class="nav-link">Community</a>
+        <a href="index.html#contact" class="nav-link">Contact</a>
+      </div>
+      <a href="index.html#join" class="btn-gold">Join Arca</a>
+      <button class="mob-btn" aria-label="Menu"><svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero" style="position:relative;z-index:2;">
+  <div class="hero-bg"></div>
+  <div class="container" style="display:contents;">
+    <div class="hero-content" style="padding-left:32px;">
+      <div class="eyebrow fade-up">
+        <span class="eyebrow-line"></span>
+        <span class="eyebrow-text">Legendary Landmarks</span>
+      </div>
+      <h1 class="hero-title fade-up fd1">
+        WONDERS
+        <span class="outline">OF THE</span>
+        WORLD
+        <span class="sub-line">Timeless. Mythical. Unforgettable.</span>
+      </h1>
+      <p class="hero-desc fade-up fd2">From the gothic spires of Barcelona to the lost libraries of Alexandria — explore humanity's most extraordinary landmarks, real and legendary.</p>
+      <div class="fade-up fd3">
+        <a href="#sights" class="btn-gold">
+          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17.657 16.657L13.414 20.9a2 2 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          Explore Sights
+        </a>
+      </div>
+      <div class="hero-stats fade-up" style="transition-delay:0.4s;">
+        <div class="hero-stat">
+          <div class="stat-num">4</div>
+          <div class="stat-label">Landmarks</div>
+        </div>
+        <div class="hero-stat">
+          <div class="stat-num">3</div>
+          <div class="stat-label">Continents</div>
+        </div>
+        <div class="hero-stat">
+          <div class="stat-num">∞</div>
+          <div class="stat-label">Wonder</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="hero-mosaic">
+      <div class="mosaic-cell tall">
+        <img src="assets/sight-sagrada.png" alt="La Sagrada Família" onerror="this.src='https://placehold.co/500x900/12102a/c9a84c?text=Sagrada'">
+        <span class="mosaic-gold-tag">Barcelona</span>
+        <span class="mosaic-label">La Sagrada Família</span>
+      </div>
+      <div class="mosaic-cell">
+        <img src="assets/sight-rhodes.png" alt="Colossus of Rhodes" onerror="this.src='https://placehold.co/500x420/1a1200/c9a84c?text=Rhodes'">
+        <span class="mosaic-gold-tag">Rhodes</span>
+        <span class="mosaic-label">Colossus of Rhodes</span>
+      </div>
+      <div class="mosaic-cell">
+        <img src="assets/sight-babylon.png" alt="Hanging Gardens" onerror="this.src='https://placehold.co/500x420/0a1a0e/c9a84c?text=Babylon'">
+        <span class="mosaic-gold-tag">Babylon</span>
+        <span class="mosaic-label">Hanging Gardens</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TICKER -->
+<div class="ticker-wrap" aria-hidden="true" style="position:relative;z-index:2;">
+  <div class="ticker-track">
+    <div class="ticker-item"><span>La Sagrada Família</span><span class="ticker-dot"></span></div>
+    <div class="ticker-item">Colossus of Rhodes<span class="ticker-dot"></span></div>
+    <div class="ticker-item"><span>Hanging Gardens of Babylon</span><span class="ticker-dot"></span></div>
+    <div class="ticker-item">Library of Alexandria<span class="ticker-dot"></span></div>
+    <div class="ticker-item"><span>Barcelona · Spain</span><span class="ticker-dot"></span></div>
+    <div class="ticker-item">Rhodes · Greece<span class="ticker-dot"></span></div>
+    <div class="ticker-item"><span>Babylon · Iraq</span><span class="ticker-dot"></span></div>
+    <div class="ticker-item">Alexandria · Egypt<span class="ticker-dot"></span></div>
+    <!-- dupe for loop -->
+    <div class="ticker-item"><span>La Sagrada Família</span><span class="ticker-dot"></span></div>
+    <div class="ticker-item">Colossus of Rhodes<span class="ticker-dot"></span></div>
+    <div class="ticker-item"><span>Hanging Gardens of Babylon</span><span class="ticker-dot"></span></div>
+    <div class="ticker-item">Library of Alexandria<span class="ticker-dot"></span></div>
+    <div class="ticker-item"><span>Barcelona · Spain</span><span class="ticker-dot"></span></div>
+    <div class="ticker-item">Rhodes · Greece<span class="ticker-dot"></span></div>
+    <div class="ticker-item"><span>Babylon · Iraq</span><span class="ticker-dot"></span></div>
+    <div class="ticker-item">Alexandria · Egypt<span class="ticker-dot"></span></div>
+  </div>
+</div>
+
+
+<!-- FEATURE ROW -->
+<div class="feature-row" style="position:relative;z-index:2;">
+  <div class="container">
+    <div class="feature-row-inner">
+      <div class="feature-item fade-up">
+        <div class="feature-icon"><svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75"><path d="M3 21l1.65-3.8a9 9 0 113.4 2.9L3 21"/></svg></div>
+        <div class="feature-label">COMMUNITY</div>
+        <div class="feature-sub">Shared by the Arca community</div>
+      </div>
+      <div class="feature-item fade-up fd1">
+        <div class="feature-icon"><svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75"><path d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h.5A2.5 2.5 0 0021 5.5V3.935"/></svg></div>
+        <div class="feature-label">GLOBAL</div>
+        <div class="feature-sub">Across 3 continents</div>
+      </div>
+      <div class="feature-item fade-up fd2">
+        <div class="feature-icon"><svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
+        <div class="feature-label">TIMELESS</div>
+        <div class="feature-sub">From ancient to modern eras</div>
+      </div>
+      <div class="feature-item fade-up fd3">
+        <div class="feature-icon"><svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75"><path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg></div>
+        <div class="feature-label">LEGENDARY</div>
+        <div class="feature-sub">Real, mythical &amp; lost wonders</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SIGHTS GRID -->
+<section class="sights-section" id="sights" style="position:relative;z-index:2;">
+  <div class="container">
+    <div style="margin-bottom:48px;">
+      <div class="section-eyebrow fade-up">
+        <span class="eyebrow-line"></span>
+        <span class="eyebrow-text">The Four Wonders</span>
+      </div>
+      <h2 class="section-title fade-up fd1">LEGENDARY<br>LANDMARKS</h2>
+      <p class="section-sub fade-up fd2">Architecture, myth, knowledge, and grandeur — four places that defined human ambition across the ages.</p>
+    </div>
+
+    <div class="filter-bar fade-up fd3">
+      <button class="filter-btn active" data-filter="all">All</button>
+      <button class="filter-btn" data-filter="architecture">Architecture</button>
+      <button class="filter-btn" data-filter="ancient">Ancient</button>
+      <button class="filter-btn" data-filter="mythical">Mythical</button>
+      <button class="filter-btn" data-filter="knowledge">Knowledge</button>
+    </div>
+
+    <div class="sights-grid" id="sights-grid">
+
+      <!-- La Sagrada Família -->
+      <article class="sight-card fade-up" tabindex="0" data-category="architecture">
+        <div class="sight-img">
+          <img src="assets/sight-sagrada.png" alt="La Sagrada Família" onerror="this.src='https://placehold.co/600x400/12102a/c9a84c?text=Sagrada+Família'">
+          <div class="sight-img-overlay"></div>
+          <span class="sight-region">Spain</span>
+        </div>
+        <div class="sight-body">
+          <div>
+            <h3 class="sight-name">LA SAGRADA FAMÍLIA</h3>
+            <div class="sight-place">
+              <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M17.657 16.657L13.414 20.9a2 2 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+              Barcelona, Spain
+            </div>
+            <p class="sight-desc">Antoni Gaudí's unfinished masterpiece — a soaring basilica of stone and light that has been under construction since 1882, blending Gothic and Art Nouveau into something entirely its own.</p>
+          </div>
+          <div class="sight-meta">
+            <div class="sight-tags">
+              <span class="sight-tag">Architecture</span>
+              <span class="sight-tag gold">UNESCO</span>
+            </div>
+            <div class="sight-arrow"><svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg></div>
+          </div>
+        </div>
+      </article>
+
+      <!-- Colossus of Rhodes -->
+      <article class="sight-card fade-up fd1" tabindex="0" data-category="ancient mythical">
+        <div class="sight-img">
+          <img src="assets/sight-rhodes.png" alt="Colossus of Rhodes" onerror="this.src='https://placehold.co/600x400/1a1200/c9a84c?text=Colossus+of+Rhodes'">
+          <div class="sight-img-overlay"></div>
+          <span class="sight-region">Greece</span>
+        </div>
+        <div class="sight-body">
+          <div>
+            <h3 class="sight-name">COLOSSUS OF RHODES</h3>
+            <div class="sight-place">
+              <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M17.657 16.657L13.414 20.9a2 2 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+              Rhodes, Greece
+            </div>
+            <p class="sight-desc">A bronze statue of the sun god Helios that once stood 33 metres tall at the entrance of Rhodes harbour — one of the Seven Wonders of the Ancient World, destroyed by earthquake in 226 BC.</p>
+          </div>
+          <div class="sight-meta">
+            <div class="sight-tags">
+              <span class="sight-tag">Ancient</span>
+              <span class="sight-tag gold">7 Wonders</span>
+            </div>
+            <div class="sight-arrow"><svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg></div>
+          </div>
+        </div>
+      </article>
+
+      <!-- Hanging Gardens -->
+      <article class="sight-card fade-up" tabindex="0" data-category="ancient mythical">
+        <div class="sight-img">
+          <img src="assets/sight-babylon.png" alt="Hanging Gardens of Babylon" onerror="this.src='https://placehold.co/600x400/0a1a0e/c9a84c?text=Hanging+Gardens'">
+          <div class="sight-img-overlay"></div>
+          <span class="sight-region">Iraq</span>
+        </div>
+        <div class="sight-body">
+          <div>
+            <h3 class="sight-name">HANGING GARDENS</h3>
+            <div class="sight-place">
+              <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M17.657 16.657L13.414 20.9a2 2 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+              Babylon, Iraq
+            </div>
+            <p class="sight-desc">Said to have been built by King Nebuchadnezzar II for his wife, who longed for the green hills of her homeland — a cascading garden in the desert, the only Wonder whose existence remains unconfirmed.</p>
+          </div>
+          <div class="sight-meta">
+            <div class="sight-tags">
+              <span class="sight-tag">Mythical</span>
+              <span class="sight-tag gold">7 Wonders</span>
+            </div>
+            <div class="sight-arrow"><svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg></div>
+          </div>
+        </div>
+      </article>
+
+      <!-- Library of Alexandria -->
+      <article class="sight-card fade-up fd1" tabindex="0" data-category="ancient knowledge">
+        <div class="sight-img">
+          <img src="assets/sight-alexandria.png" alt="Library of Alexandria" onerror="this.src='https://placehold.co/600x400/1a1000/c9a84c?text=Library+of+Alexandria'">
+          <div class="sight-img-overlay"></div>
+          <span class="sight-region">Egypt</span>
+        </div>
+        <div class="sight-body">
+          <div>
+            <h3 class="sight-name">LIBRARY OF ALEXANDRIA</h3>
+            <div class="sight-place">
+              <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M17.657 16.657L13.414 20.9a2 2 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+              Alexandria, Egypt
+            </div>
+            <p class="sight-desc">Once the greatest repository of knowledge in the ancient world — holding scrolls from every civilization. Its destruction remains one of history's most lamented losses of human learning.</p>
+          </div>
+          <div class="sight-meta">
+            <div class="sight-tags">
+              <span class="sight-tag">Knowledge</span>
+              <span class="sight-tag gold">Lost Wonder</span>
+            </div>
+            <div class="sight-arrow"><svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg></div>
+          </div>
+        </div>
+      </article>
+
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section" style="position:relative;z-index:2;">
+  <div class="container">
+    <div class="cta-banner fade-up">
+      <div class="cta-banner-bg"></div>
+      <div class="cta-title">KNOW A WONDER<br>WE MISSED?</div>
+      <p class="cta-sub">The Arca community is built by curious people, for curious people. Share a landmark that moved you.</p>
+      <a href="index.html#contact" class="btn-gold">
+        <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M12 4v16m8-8H4"/></svg>
+        Share a Sight
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer style="position:relative;z-index:2;">
+  <div class="container">
+    <div class="footer-inner">
+      <span class="footer-copy">© 2026 arca.ph — Filipino Community</span>
+      <div class="footer-links">
+        <a href="index.html" class="footer-link">Home</a>
+        <a href="#" class="footer-link">Sights</a>
+        <a href="index.html#community" class="footer-link">Community</a>
+        <a href="index.html#contact" class="footer-link">Contact</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // Scroll progress bar
+  const scrollBar = document.getElementById('scroll-bar');
+  window.addEventListener('scroll', () => {
+    scrollBar.style.width = (window.scrollY / (document.documentElement.scrollHeight - window.innerHeight) * 100) + '%';
+  }, { passive: true });
+
+  // Fade-up observer
+  const fadeObs = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+  }, { threshold: 0.07, rootMargin: '0px 0px -40px 0px' });
+  document.querySelectorAll('.fade-up').forEach(el => {
+    fadeObs.observe(el);
+    if (el.getBoundingClientRect().top < window.innerHeight * 0.92) el.classList.add('visible');
+  });
+
+  // Filter buttons
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const f = btn.dataset.filter;
+      document.querySelectorAll('#sights-grid .sight-card').forEach(card => {
+        card.classList.toggle('hidden', f !== 'all' && !card.dataset.category.includes(f));
+      });
+    });
+  });
+
+
+  // Background scroll animation
+  const TOTAL = 161, BATCH = 20, FW = 960, FH = 960;
+  const frames = new Array(TOTAL);
+  let currentFrame = 0, drawnFrame = -1;
+  const bgCanvas = document.getElementById('bg-canvas');
+  const bgCtx = bgCanvas.getContext('2d');
+
+  function resizeBgCanvas() {
+    bgCanvas.width = window.innerWidth;
+    bgCanvas.height = window.innerHeight;
+    if (frames[drawnFrame]) drawBgFrame(drawnFrame);
+  }
+  resizeBgCanvas();
+  window.addEventListener('resize', resizeBgCanvas, { passive: true });
+
+  function drawBgFrame(i) {
+    if (!frames[i]) return;
+    const cw = bgCanvas.width, ch = bgCanvas.height;
+    bgCtx.clearRect(0, 0, cw, ch);
+    const scale = Math.max(cw / FW, ch / FH);
+    const dw = FW * scale, dh = FH * scale;
+    bgCtx.drawImage(frames[i], (cw - dw) / 2, (ch - dh) / 2, dw, dh);
+  }
+
+  function loadBgFrame(i) {
+    return new Promise(resolve => {
+      const img = new Image();
+      img.onload = () => { frames[i] = img; resolve(); };
+      img.onerror = resolve;
+      img.src = 'black-ssg-frames/frame-' + String(i + 1).padStart(4, '0') + '.jpg';
+    });
+  }
+
+  const loaderFill = document.getElementById('loader-fill');
+  const loaderPct  = document.getElementById('loader-pct');
+  const bgLoader   = document.getElementById('bg-loader');
+
+  async function preloadBgFrames() {
+    for (let i = 0; i < TOTAL; i += BATCH) {
+      const batch = [];
+      for (let j = i; j < Math.min(i + BATCH, TOTAL); j++) batch.push(loadBgFrame(j));
+      await Promise.all(batch);
+      const pct = Math.round(Math.min((i + BATCH) / TOTAL * 100, 100));
+      loaderFill.style.width = pct + '%';
+      loaderPct.textContent  = pct + '%';
+    }
+    if (frames[0]) drawBgFrame(0);
+    drawnFrame = 0;
+    bgLoader.classList.add('hidden');
+    setTimeout(() => { bgLoader.style.display = 'none'; }, 600);
+    requestAnimationFrame(bgTick);
+  }
+  preloadBgFrames();
+
+  window.addEventListener('scroll', () => {
+    const progress = window.scrollY / (document.documentElement.scrollHeight - window.innerHeight);
+    currentFrame = Math.min(Math.floor(Math.max(0, progress) * TOTAL), TOTAL - 1);
+  }, { passive: true });
+
+  function bgTick() {
+    if (currentFrame !== drawnFrame && frames[currentFrame]) {
+      drawBgFrame(currentFrame);
+      drawnFrame = currentFrame;
+    }
+    requestAnimationFrame(bgTick);
+  }
+</script>
+</body>
+</html>
